@@ -20,6 +20,9 @@ signal status_changed(reversed: bool, giant: bool)
 @export var bullet_speed := 900.0
 ## How fast outside pushes (black hole pull, knockback) fade, per second.
 @export var drift_damping := 1.6
+## Push away from whatever hit the ship (added to the ship's current speed,
+## so it always clears the obstacle).
+@export var knockback := 600.0
 
 const BULLET := preload("res://scenes/bullet.tscn")
 const SHOOT_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser1.ogg")
@@ -90,11 +93,10 @@ func _physics_process(delta: float) -> void:
 
 	var col := move_and_collide(velocity * delta)
 	if col:
-		# Bounce off the barrier and take damage.
+		# Get knocked back off the obstacle and take damage, but keep facing
+		# (and flying) the same way.
 		var n := col.get_normal()
-		heading = Vector2.RIGHT.rotated(heading).bounce(n).angle()
-		drift = drift.bounce(n) * 0.5
-		rotation = heading
+		drift = drift.slide(n) + n * (knockback + speed)
 		position += n * 8.0
 		take_hit()
 
@@ -152,8 +154,9 @@ func take_hit(from: Vector2 = Vector2.INF) -> void:
 	if not alive or _invuln > 0.0:
 		return
 	if from != Vector2.INF:
-		heading = (global_position - from).angle()
-		rotation = heading
+		# Knocked back away from what hit us; the nose stays pointing the same way.
+		var away := (global_position - from).normalized()
+		drift = drift.slide(away) + away * (knockback + speed)
 	lives -= 1
 	lives_changed.emit(lives)
 	hit_sound.play()
