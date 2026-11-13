@@ -1,12 +1,27 @@
 extends Node2D
-## Player 2: an alien astronaut that runs along a fixed rectangular track
-## around the edge of the screen (arrow keys) and throws a comet at the mouse
-## position every few seconds (left click).
+## Darth (player 2): an alien astronaut that runs along a fixed rectangular
+## track around the edge of the screen (arrow keys), throws a comet at the
+## mouse every few seconds (left click), and picks up a random item every few
+## seconds that can be used with right click (mouse wheel / Shift to switch).
 
 signal hits_changed(hits: int)
 signal cooldown_changed(ready_fraction: float)
+signal items_changed(items: Array, selected: int)
 
 const COMET := preload("res://scenes/comet.tscn")
+const FLASH_BANG := preload("res://scripts/flash_bang.gd")
+const LASER := preload("res://scripts/laser_beam.gd")
+const HUNTER := preload("res://scenes/hunter.tscn")
+const PICKUP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldUp.ogg")
+const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
+
+enum Item { CHAOS, FLASH_BANG, HUNTER, LASER, GIANT }
+const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT"]
+
+@export var item_interval := 5.0
+@export var max_items := 3
+@export var chaos_seconds := 2.0
+@export var giant_seconds := 3.0
 
 @export var speed := 900.0 ## world pixels per second along the track
 ## Gap between the track and the screen edge, in screen pixels.
@@ -19,6 +34,9 @@ var hits := 0
 var track_pos := -1.0 ## set on the first frame to the middle of the left edge
 var _cooldown := 1.5
 var _track_local := Rect2()
+var items: Array[int] = []
+var selected := 0
+var _item_timer := 5.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var aim: Line2D = $Aim
@@ -51,6 +69,24 @@ func _process(delta: float) -> void:
 	if _cooldown <= 0.0 and Input.is_action_just_pressed("p2_throw"):
 		_throw(mouse)
 
+	# Items.
+	_item_timer -= delta
+	if _item_timer <= 0.0:
+		_item_timer = item_interval
+		if items.size() < max_items:
+			items.append(randi() % Item.size())
+			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
+			_items_updated()
+	if items.size() > 0:
+		if Input.is_action_just_pressed("p2_next"):
+			selected = (selected + 1) % items.size()
+			_items_updated()
+		if Input.is_action_just_pressed("p2_prev"):
+			selected = (selected - 1 + items.size()) % items.size()
+			_items_updated()
+		if Input.is_action_just_pressed("p2_use"):
+			use_item(mouse)
+
 
 func _throw(target: Vector2) -> void:
 	_cooldown = throw_cooldown
@@ -60,6 +96,49 @@ func _throw(target: Vector2) -> void:
 	comet.thrower = self
 	get_tree().current_scene.add_child(comet)
 	throw_sound.play()
+
+
+## Use the selected item, aimed at `target` (world position) where relevant.
+func use_item(target: Vector2) -> void:
+	if items.is_empty():
+		return
+	selected = clampi(selected, 0, items.size() - 1)
+	var item: int = items[selected]
+	items.remove_at(selected)
+	if selected >= items.size():
+		selected = maxi(0, items.size() - 1)
+	_items_updated()
+	var scene := get_tree().current_scene
+	var luke: Node2D = get_tree().get_first_node_in_group("player")
+	match item:
+		Item.CHAOS:
+			if luke:
+				luke.apply_chaos(chaos_seconds)
+		Item.GIANT:
+			if luke:
+				luke.apply_giant(giant_seconds)
+		Item.FLASH_BANG:
+			var fb := Node2D.new()
+			fb.set_script(FLASH_BANG)
+			fb.position = target
+			scene.add_child(fb)
+		Item.HUNTER:
+			var h := HUNTER.instantiate()
+			var dir: Vector2 = (luke.global_position - global_position).normalized() if luke else Vector2.RIGHT
+			h.position = global_position + dir * 60.0
+			h.rotation = dir.angle()
+			scene.add_child(h)
+		Item.LASER:
+			var beam := Node2D.new()
+			beam.set_script(LASER)
+			beam.setup(global_position, target - global_position)
+			beam.hit_luke.connect(scored_hit)
+			scene.add_child(beam)
+	Fx.sound(scene, USE_SOUND, -6.0)
+
+
+func _items_updated() -> void:
+	items_changed.emit(items, selected)
 
 
 ## Called by a thrown comet when it damages the ship.

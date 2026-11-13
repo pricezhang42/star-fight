@@ -10,6 +10,8 @@ extends CharacterBody2D
 @export var health := 2
 @export var fire_range := 520.0
 @export var fire_cooldown := 1.3
+## Seconds before it leaves on its own (0 = never). Used by Darth's hunter.
+@export var lifetime := 0.0
 
 var heading := 0.0
 var chasing := false
@@ -26,6 +28,11 @@ func _ready() -> void:
 
 
 func _physics_process(delta: float) -> void:
+	if lifetime > 0.0:
+		lifetime -= delta
+		if lifetime <= 0.0:
+			_leave()
+			return
 	var player := Alien.find_player(self)
 	if player:
 		var d := global_position.distance_to(player.global_position)
@@ -57,3 +64,10 @@ func take_damage(amount: int) -> void:
 	chasing = true # getting shot makes it angry
 	if health <= 0:
 		Alien.explode(self)
+
+
+func _leave() -> void:
+	set_physics_process(false)
+	var tw := create_tween()
+	tw.tween_property(self, "modulate:a", 0.0, 0.5)
+	tw.tween_callback(queue_free)

@@ -20,10 +20,13 @@ Files used (in `assets/kenney_space_shooter_redux/`):
 | Asteroid belts and borders | `meteors/meteorGrey_big1-4.png`, `meteors/meteorBrown_big1-4.png`, `meteors/meteorBrown_med1.png`, `meteors/meteorGrey_med1.png` |
 | Engine flame, shield | `effects/fire00.png`, `effects/shield1.png` |
 | Life icons | `ui/playerLife1_blue.png` |
+| Darth's item icons | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `enemies/enemyBlack1.png` |
+| Darth's hunter ship (tinted purple) | `enemies/enemyBlack1.png` |
+| Darth's laser beam | `lasers/laserRed01.png` (stretched) |
 | Background | `backgrounds/darkPurple.png` |
 | Lasers and hit flashes | `lasers/laserBlue01.png`, `lasers/laserRed01.png`, `lasers/laserBlue08.png`, `lasers/laserRed08.png` |
 | Comets | `meteors/meteorBrown_med1.png` (plus `meteorBrown_med3.png`, `meteorGrey_med1.png`) with `effects/fire00.png` trail |
-| Sounds | `sounds/sfx_shieldDown.ogg`, `sounds/sfx_lose.ogg`, `sounds/sfx_laser1.ogg`, `sounds/sfx_laser2.ogg`, `sounds/sfx_zap.ogg` |
+| Sounds | `sounds/sfx_shieldDown.ogg`, `sounds/sfx_lose.ogg`, `sounds/sfx_laser1.ogg`, `sounds/sfx_laser2.ogg`, `sounds/sfx_zap.ogg`, `sounds/sfx_shieldUp.ogg` |
 | Font | `fonts/kenvector_future.ttf` |
 
 Some extra files from the pack (`enemyGreen3.png`, `ufoGreen.png`, `ufoRed.png`, `fire01.png`,

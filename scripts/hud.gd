@@ -6,6 +6,17 @@ const LIFE_ICON := preload("res://assets/kenney_space_shooter_redux/ui/playerLif
 @onready var distance_label: Label = $Distance
 @onready var message: Label = $Message
 @onready var p2_label: Label = $P2
+@onready var items_box: HBoxContainer = $Items
+@onready var luke_status: Label = $LukeStatus
+
+const ITEM_ICONS := [
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"), # chaos
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupBlue_star.png"), # flash bang
+	preload("res://assets/kenney_space_shooter_redux/enemies/enemyBlack1.png"), # hunter
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed_bolt.png"), # laser
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupGreen_shield.png"), # giant
+]
+const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT"]
 
 var _p2_hits := 0
 var _p2_ready := 0.0
@@ -41,5 +52,44 @@ func set_p2_cooldown(ready_fraction: float) -> void:
 
 func _update_p2() -> void:
 	var state := "COMET READY - CLICK" if _p2_ready >= 1.0 else "RECHARGING %d%%" % int(_p2_ready * 100.0)
-	p2_label.text = "ALIEN  HITS %d   %s" % [_p2_hits, state]
+	p2_label.text = "DARTH  HITS %d   %s" % [_p2_hits, state]
 	p2_label.modulate = Color(0.6, 1.0, 0.6) if _p2_ready >= 1.0 else Color(0.6, 0.8, 0.6, 0.7)
+
+
+## Darth's item slots: icon + name, the selected one highlighted.
+func set_items(items: Array, selected: int) -> void:
+	for c in items_box.get_children():
+		c.queue_free()
+	for i in items.size():
+		var slot := VBoxContainer.new()
+		slot.alignment = BoxContainer.ALIGNMENT_CENTER
+		var icon := TextureRect.new()
+		icon.texture = ITEM_ICONS[items[i]]
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(34, 34)
+		slot.add_child(icon)
+		var name_label := Label.new()
+		name_label.text = ITEM_NAMES[items[i]]
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var ls := LabelSettings.new()
+		ls.font = p2_label.label_settings.font
+		ls.font_size = 13
+		ls.outline_size = 3
+		ls.outline_color = Color.BLACK
+		name_label.label_settings = ls
+		slot.add_child(name_label)
+		slot.modulate = Color(1, 1, 1, 1) if i == selected else Color(1, 1, 1, 0.45)
+		if i == selected:
+			icon.custom_minimum_size = Vector2(44, 44)
+		items_box.add_child(slot)
+
+
+## Warnings on Luke's side when Darth's effects are active.
+func set_luke_status(reversed: bool, giant: bool) -> void:
+	var parts := []
+	if reversed:
+		parts.append("CONTROLS REVERSED!")
+	if giant:
+		parts.append("GIANT SHIP!")
+	luke_status.text = "   ".join(parts)

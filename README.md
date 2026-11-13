@@ -9,23 +9,38 @@ monitor.
 
 ## Controls
 
-Two players share one keyboard and mouse.
+Two players share one keyboard and mouse: **Luke** flies the starship and
+**Darth** plays the alien astronaut.
 
-**Player 1, the starship**
+**Luke, the starship**
 - **A / D:** rotate the ship
 - **W / S:** speed up / brake (speed is kept when you let go; the ship never
   fully stops)
 - **Space / J:** fire lasers
 
-**Player 2, the alien astronaut**
+**Darth, the alien astronaut**
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
   screen. Press along the edge you're on to move; at a corner, press toward
   the next edge to turn onto it.
-- **Left click:** throw a green comet from the astronaut toward the mouse.
-  It recharges for 4 seconds between throws. The top of the screen shows the
-  alien's hits and whether the comet is ready.
+- **Left click:** throw a green comet toward the mouse (recharges for 4 s).
+- **Right click:** use the selected item. **Mouse wheel / Shift:** switch item.
 
-**Both:** Enter / R restarts after the ship is lost.
+**Both:** Enter / R restarts after Luke's ship is lost.
+
+## Darth's items
+
+Darth gets a random item every 5 seconds and can hold up to 3 (shown under
+Darth's line at the top of the screen; the selected one is highlighted).
+
+| Item | Effect |
+| --- | --- |
+| Chaos | Luke's controls are swapped for 2 s (A/D and W/S). Luke's ship turns purple and "CONTROLS REVERSED!" shows. |
+| Flash | A dark cloud covers the spot Darth clicked for 4 s, after a bright flash. |
+| Hunter | A purple enemy ship spawns next to Darth, always hunts Luke, shoots, and dies in 3 hits. It leaves after 20 s. |
+| Laser | A flashing red warning line points where Darth clicked for 1 s, then a beam fires along it and costs Luke a life if it touches him. It passes through everything, so dodge sideways during the warning. |
+| Giant | Luke's ship and hitbox double in size for 3 s. |
+
+Darth's HITS count comet and laser hits on Luke.
 
 ## Rules
 

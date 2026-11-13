@@ -1,0 +1,42 @@
+[gd_scene load_steps=6 format=3]
+
+[ext_resource type="Script" path="res://scripts/chaser.gd" id="1"]
+[ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/enemies/enemyBlack1.png" id="2"]
+[ext_resource type="Script" path="res://scripts/enemy_hitbox.gd" id="3"]
+
+[sub_resource type="CircleShape2D" id="c1"]
+radius = 22.0
+
+[sub_resource type="CircleShape2D" id="c2"]
+radius = 26.0
+
+[node name="Hunter" type="CharacterBody2D" groups=["aliens"]]
+collision_layer = 4
+collision_mask = 5
+motion_mode = 1
+script = ExtResource("1")
+speed = 250.0
+turn_speed = 3.2
+detect_radius = 100000.0
+lose_radius = 100000.0
+health = 3
+fire_range = 600.0
+fire_cooldown = 1.1
+lifetime = 20.0
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+modulate = Color(0.75, 0.6, 1, 1)
+rotation = -1.5708
+scale = Vector2(0.7, 0.7)
+texture = ExtResource("2")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+shape = SubResource("c1")
+
+[node name="Hitbox" type="Area2D" parent="." groups=["alien_hurtbox"]]
+collision_layer = 8
+collision_mask = 2
+script = ExtResource("3")
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hitbox"]
+shape = SubResource("c2")

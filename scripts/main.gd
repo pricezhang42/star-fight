@@ -48,6 +48,8 @@ func _ready() -> void:
 	var alien = $AlienAstronaut
 	alien.hits_changed.connect(hud.set_p2_hits)
 	alien.cooldown_changed.connect(hud.set_p2_cooldown)
+	alien.items_changed.connect(hud.set_items)
+	player.status_changed.connect(hud.set_luke_status)
 	hud.set_p2_hits(0)
 	_start_x = player.global_position.x
 	_furthest_x = _start_x
@@ -119,7 +121,7 @@ func _on_player_died() -> void:
 	if new_best:
 		best = score
 		_save_best(best)
-	hud.show_message("SHIP LOST\n\nSCORE %d%s\nALIEN COMET HITS %d\n\nPRESS ENTER TO FLY AGAIN"
+	hud.show_message("LUKE'S SHIP IS LOST\n\nSCORE %d%s\nDARTH'S HITS %d\n\nPRESS ENTER TO FLY AGAIN"
 			% [score, "   NEW BEST!" if new_best else "   BEST %d" % best, $AlienAstronaut.hits])
 
 
