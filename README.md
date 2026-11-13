@@ -16,14 +16,19 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
 - **A / D:** rotate the ship
 - **W / S:** speed up / brake (speed is kept when you let go; the ship never
   fully stops)
-- **Space / J:** fire lasers
+- **Space / J:** fire lasers forward
+- **B:** fire lasers backward out of the tail (same rate as the front gun;
+  both can fire at once)
+- **Shift:** dash forward (about +370 px over half a second). Luke can't
+  lose a life for the first 0.3 s of a dash, so it can punch through a
+  laser, comet or bullet. Recharges in 10 s; shown under Luke's lives.
 
 **Darth, the alien astronaut**
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
   screen. Press along the edge you're on to move. At a corner, press toward
   the next edge, or keep pressing the way you were going, to go round it.
 - **Left click:** throw a green comet toward the mouse (recharges for 4 s).
-- **Right click:** use the selected item. **Mouse wheel / Shift:** switch item.
+- **Right click:** use the selected item. **Mouse wheel:** switch item.
 
 **Both:** Enter / R restarts after Luke's ship is lost.
 
@@ -59,7 +64,9 @@ Darth's HITS count comet and laser hits on Luke.
   you (4 hits to destroy).
 - Right: asteroid belts (clumps plus short vertical and diagonal strips).
 - After that the level keeps generating forever from the same pieces. It
-  starts sparse and calm and ramps up until a score of about 2000: more rocks,
+  starts sparse and calm (one obstacle per column at most, small clumps,
+  many empty columns), stays easy until a score of about 640, then ramps up
+  until a score of about 2600: more rocks,
   planets and black holes, more enemy ships and chasers, more hostile
   satellites, faster and more frequent enemy fire, stronger black holes and
   more random comets. You can fly back a little, but not all the way.

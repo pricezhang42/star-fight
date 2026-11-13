@@ -50,6 +50,7 @@ func _ready() -> void:
 	alien.cooldown_changed.connect(hud.set_p2_cooldown)
 	alien.items_changed.connect(hud.set_items)
 	player.status_changed.connect(hud.set_luke_status)
+	player.dash_changed.connect(hud.set_dash)
 	hud.set_p2_hits(0)
 	_start_x = player.global_position.x
 	_furthest_x = _start_x

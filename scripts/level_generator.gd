@@ -25,6 +25,8 @@ const PLANET_TEXTURES := [
 ## Distance over which the level ramps from easy to full difficulty
 ## (20000 px = a score of 2000).
 @export var ramp_distance := 20000.0
+## Extra distance after the opening section that stays at the easiest setting.
+@export var easy_stretch := 3000.0
 
 var generated_until := 0.0
 var _last_big_x := -INF ## x of the last big planet / black hole, to keep them apart
@@ -52,7 +54,7 @@ func _build_chunk(x0: float) -> void:
 	chunk.name = "Chunk%d" % int(x0)
 	chunk.set_meta("end_x", x0 + chunk_width)
 	add_child(chunk)
-	var difficulty := clampf((x0 - start_x) / ramp_distance, 0.0, 1.0)
+	var difficulty := clampf((x0 - start_x - easy_stretch) / ramp_distance, 0.0, 1.0)
 
 	# Top and bottom borders.
 	for y in [0.0, world_height]:
@@ -71,12 +73,12 @@ func _build_chunk(x0: float) -> void:
 	var col_w := chunk_width / columns
 	for c in columns:
 		var cx := x0 + col_w * (c + 0.5) + _rng.randf_range(-60.0, 60.0)
-		if _rng.randf() < 0.45 * (1.0 - difficulty):
+		if _rng.randf() < lerpf(0.6, 0.0, difficulty):
 			continue # empty column: free space
 		var roll := _rng.randf()
 		var room_for_big := cx - _last_big_x > 900.0
 		if roll < 0.25:
-			if _add_planet(chunk, cx, difficulty, room_for_big):
+			if _add_planet(chunk, cx, difficulty, room_for_big and difficulty > 0.15):
 				_last_big_x = cx
 		elif room_for_big and roll < 0.31 + 0.1 * difficulty:
 			_add_black_hole(chunk, cx, difficulty)
@@ -90,7 +92,10 @@ func _build_chunk(x0: float) -> void:
 				_rng.randf_range(0.74, 0.88) * world_height,
 			]
 			bands.shuffle()
-			var count := 1 + int(_rng.randf() < 0.1 + 0.6 * difficulty) + int(_rng.randf() < 0.45 * difficulty - 0.05)
+			# Only one obstacle per column early on (about score 1000).
+			var count := 1
+			if difficulty >= 0.2:
+				count += int(_rng.randf() < 0.1 + 0.6 * difficulty) + int(_rng.randf() < 0.45 * difficulty - 0.05)
 			for i in count:
 				_add_small(chunk, Vector2(cx + _rng.randf_range(-80.0, 80.0), bands[i]), difficulty)
 
@@ -119,14 +124,15 @@ func _add_small(chunk: Node, pos: Vector2, _difficulty: float) -> void:
 	if _rng.randf() < 0.55:
 		var cl := CLUSTER.instantiate()
 		cl.position = pos
-		cl.radius = _rng.randf_range(80.0, 140.0)
+		# Small clumps early, bigger ones later.
+		cl.radius = _rng.randf_range(lerpf(55.0, 80.0, _difficulty), lerpf(90.0, 140.0, _difficulty))
 		cl.count = int(cl.radius / 11.0)
 		cl.rock_scale = _rng.randf_range(0.8, 1.0)
 		cl.random_seed = _rng.randi()
 		chunk.add_child(cl)
 	else:
 		var strip := WALL.instantiate()
-		var length := _rng.randf_range(220.0, 380.0)
+		var length := _rng.randf_range(lerpf(160.0, 220.0, _difficulty), lerpf(260.0, 380.0, _difficulty))
 		strip.length = length
 		strip.spacing = 64.0
 		strip.rock_scale = 0.8

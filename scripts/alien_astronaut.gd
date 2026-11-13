@@ -2,7 +2,7 @@ extends Node2D
 ## Darth (player 2): an alien astronaut that runs along a fixed rectangular
 ## track around the edge of the screen (arrow keys), throws a comet at the
 ## mouse every few seconds (left click), and picks up a random item every few
-## seconds that can be used with right click (mouse wheel / Shift to switch).
+## seconds that can be used with right click (mouse wheel to switch).
 
 signal hits_changed(hits: int)
 signal cooldown_changed(ready_fraction: float)

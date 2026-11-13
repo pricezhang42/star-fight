@@ -15,8 +15,6 @@
 [ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="hud"]
 [ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet19.png" id="planet19"]
 [ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet14.png" id="planet14"]
-[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet3.png" id="planet3"]
-[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet8.png" id="planet8"]
 [ext_resource type="AudioStream" path="res://assets/kenney_space_shooter_redux/sounds/sfx_lose.ogg" id="lose"]
 
 [sub_resource type="Curve2D" id="ship_loop"]
@@ -96,27 +94,6 @@ orbit_speed = -0.8
 hostile = true
 fire_cooldown = 3.0
 
-[node name="PlanetC" parent="." instance=ExtResource("planet")]
-position = Vector2(2250, 868)
-radius = 75.0
-texture = ExtResource("planet3")
-spin_speed = 0.08
-
-[node name="Satellite" parent="PlanetC" instance=ExtResource("satellite")]
-orbit_radius = 150.0
-angle = 2.5
-orbit_speed = 1.3
-
-[node name="PlanetD" parent="." instance=ExtResource("planet")]
-position = Vector2(3300, 532)
-radius = 95.0
-texture = ExtResource("planet8")
-spin_speed = -0.06
-
-[node name="Satellite" parent="PlanetD" instance=ExtResource("satellite")]
-orbit_radius = 175.0
-orbit_speed = -1.1
-
 [node name="AsteroidBelts" type="Node2D" parent="."]
 
 [node name="Clump" parent="AsteroidBelts" instance=ExtResource("cluster")]
@@ -134,14 +111,6 @@ rock_scale = 0.8
 brown = true
 random_seed = 31
 
-[node name="StripBottom" parent="AsteroidBelts" instance=ExtResource("wall")]
-position = Vector2(2550, 1092)
-length = 260.0
-spacing = 64.0
-rock_scale = 0.8
-brown = true
-random_seed = 33
-
 [node name="DiagonalStrip" parent="AsteroidBelts" instance=ExtResource("wall")]
 position = Vector2(3100, 728)
 rotation = 0.487
@@ -149,13 +118,6 @@ length = 380.0
 spacing = 64.0
 rock_scale = 0.8
 random_seed = 32
-
-[node name="ClumpRight" parent="AsteroidBelts" instance=ExtResource("cluster")]
-position = Vector2(3250, 1400)
-radius = 110.0
-count = 10
-rock_scale = 0.9
-random_seed = 9
 
 [node name="Aliens" type="Node2D" parent="."]
 

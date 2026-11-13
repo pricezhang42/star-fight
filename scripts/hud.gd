@@ -8,6 +8,7 @@ const LIFE_ICON := preload("res://assets/kenney_space_shooter_redux/ui/playerLif
 @onready var p2_label: Label = $P2
 @onready var items_box: HBoxContainer = $Items
 @onready var luke_status: Label = $LukeStatus
+@onready var dash_label: Label = $Dash
 
 const ITEM_ICONS := [
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"), # chaos
@@ -96,3 +97,12 @@ func set_luke_status(reversed: bool, giant: bool, slick: bool = false) -> void:
 	if slick:
 		parts.append("SLIPPERY STEERING!")
 	luke_status.text = "   ".join(parts)
+
+
+func set_dash(ready_fraction: float) -> void:
+	if ready_fraction >= 1.0:
+		dash_label.text = "DASH READY - SHIFT"
+		dash_label.modulate = Color(0.6, 0.9, 1.0)
+	else:
+		dash_label.text = "DASH %d%%" % int(ready_fraction * 100.0)
+		dash_label.modulate = Color(0.6, 0.7, 0.8, 0.7)

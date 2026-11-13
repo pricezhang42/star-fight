@@ -1,5 +1,6 @@
 extends CharacterBody2D
-## Luke's starship (player 1). A/D rotate the ship, W/S speed up and brake.
+## Luke's starship (player 1). A/D rotate the ship, W/S speed up and brake,
+## Space fires forward, B fires backward, Shift dashes.
 ## The ship always keeps drifting forward at its current speed.
 ## Darth's items can reverse the controls (chaos) or make it bigger (giant).
 
@@ -7,6 +8,8 @@ signal lives_changed(lives: int)
 signal died
 ## Emitted when chaos / giant start or end, for the HUD.
 signal status_changed(reversed: bool, giant: bool, slick: bool)
+## 0..1 how recharged the dash is (1 = ready).
+signal dash_changed(ready_fraction: float)
 
 @export var speed := 220.0 ## starting / current speed
 @export var min_speed := 60.0
@@ -20,12 +23,18 @@ signal status_changed(reversed: bool, giant: bool, slick: bool)
 @export var bullet_speed := 900.0
 ## How fast outside pushes (black hole pull, knockback) fade, per second.
 @export var drift_damping := 1.6
+## Dash: extra speed added in the nose direction (fades like other pushes).
+@export var dash_speed := 1000.0
+@export var dash_cooldown := 10.0
+## Seconds at the start of a dash during which nothing costs a life.
+@export var dash_iframes := 0.3
 ## Push away from whatever hit the ship (added to the ship's current speed,
 ## so it always clears the obstacle).
 @export var knockback := 600.0
 
 const BULLET := preload("res://scenes/bullet.tscn")
 const SHOOT_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser1.ogg")
+const DASH_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_twoTone.ogg")
 
 var lives := 0
 ## Extra velocity from outside forces such as black holes.
@@ -33,6 +42,10 @@ var drift := Vector2.ZERO
 ## While above 0, black holes don't pull the ship (set after being flung out).
 var gravity_grace := 0.0
 var _fire_cd := 0.0
+var _fire_back_cd := 0.0
+var _dash_cd := 0.0
+var _dash_iframe := 0.0
+var _last_dash_report := -1.0
 var heading := 0.0
 var alive := true
 var _invuln := 0.0
@@ -121,15 +134,31 @@ func _physics_process(delta: float) -> void:
 	_fire_cd -= delta
 	if Input.is_action_pressed("fire") and _fire_cd <= 0.0:
 		_fire_cd = fire_cooldown
-		_shoot()
+		_shoot(Vector2.RIGHT.rotated(heading), bullet_speed + speed)
+	# Backward gun: same rate, its own timer, fires out of the tail.
+	_fire_back_cd -= delta
+	if Input.is_action_pressed("fire_back") and _fire_back_cd <= 0.0:
+		_fire_back_cd = fire_cooldown
+		_shoot(Vector2.LEFT.rotated(heading), bullet_speed)
+
+	# Dash.
+	_dash_cd = maxf(0.0, _dash_cd - delta)
+	_dash_iframe = maxf(0.0, _dash_iframe - delta)
+	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
+		_dash()
+	if _dash_iframe > 0.0:
+		_spawn_ghost()
+	var dash_ready := 1.0 - _dash_cd / dash_cooldown
+	if absf(dash_ready - _last_dash_report) > 0.01 or (dash_ready >= 1.0 and _last_dash_report < 1.0):
+		_last_dash_report = dash_ready
+		dash_changed.emit(dash_ready)
 
 	_update_effects(delta)
 
 
-func _shoot() -> void:
-	var dir := Vector2.RIGHT.rotated(heading)
+func _shoot(dir: Vector2, shot_speed: float) -> void:
 	var b := BULLET.instantiate()
-	b.setup(global_position + dir * 36.0, dir, true, bullet_speed + speed)
+	b.setup(global_position + dir * 36.0 * size_mult, dir, true, shot_speed)
 	get_tree().current_scene.add_child(b)
 	Fx.sound(get_tree().current_scene, SHOOT_SOUND, -8.0)
 
@@ -176,11 +205,13 @@ func _update_effects(delta: float) -> void:
 ## Called by barriers (internally) and by alien hitboxes.
 ## `from` is the position of whatever hit us, used to knock the ship away.
 func take_hit(from: Vector2 = Vector2.INF) -> void:
-	if not alive or _invuln > 0.0:
+	if not alive or _invuln > 0.0 or _dash_iframe > 0.0:
 		return
 	if from != Vector2.INF:
 		# Knocked back away from what hit us; the nose stays pointing the same way.
 		var away := (global_position - from).normalized()
+		if away == Vector2.ZERO:
+			away = Vector2.LEFT.rotated(heading) # hit dead centre: push straight back
 		drift = drift.slide(away) + away * (knockback + speed)
 	lives -= 1
 	lives_changed.emit(lives)
@@ -217,3 +248,24 @@ func apply_giant(seconds: float) -> void:
 ## Darth's Slick item: slippery steering for `seconds`.
 func apply_slick(seconds: float) -> void:
 	slick_time = maxf(slick_time, seconds)
+
+
+func _dash() -> void:
+	_dash_cd = dash_cooldown
+	_dash_iframe = dash_iframes
+	drift += Vector2.RIGHT.rotated(heading) * dash_speed
+	Fx.sound(get_tree().current_scene, DASH_SOUND, -4.0)
+
+
+## Fading afterimage of the ship, left behind while dashing.
+func _spawn_ghost() -> void:
+	var g := Sprite2D.new()
+	g.texture = sprite.texture
+	g.global_position = global_position
+	g.rotation = sprite.global_rotation
+	g.scale = sprite.global_scale
+	g.modulate = Color(0.5, 0.85, 1.0, 0.55)
+	get_tree().current_scene.add_child(g)
+	var tw := g.create_tween()
+	tw.tween_property(g, "modulate:a", 0.0, 0.3)
+	tw.tween_callback(g.queue_free)
