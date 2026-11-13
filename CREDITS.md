@@ -20,7 +20,7 @@ Files used (in `assets/kenney_space_shooter_redux/`):
 | Asteroid belts and borders | `meteors/meteorGrey_big1-4.png`, `meteors/meteorBrown_big1-4.png`, `meteors/meteorBrown_med1.png`, `meteors/meteorGrey_med1.png` |
 | Engine flame, shield | `effects/fire00.png`, `effects/shield1.png` |
 | Life icons | `ui/playerLife1_blue.png` |
-| Darth's item icons | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `enemies/enemyBlack1.png` |
+| Darth's item icons | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
 | Darth's hunter ship (tinted purple) | `enemies/enemyBlack1.png` |
 | Darth's laser beam | `lasers/laserRed01.png` (stretched) |
 | Background | `backgrounds/darkPurple.png` |

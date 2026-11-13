@@ -15,8 +15,9 @@ const ITEM_ICONS := [
 	preload("res://assets/kenney_space_shooter_redux/enemies/enemyBlack1.png"), # hunter
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed_bolt.png"), # laser
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupGreen_shield.png"), # giant
+	preload("res://assets/kenney_space_shooter_redux/powerups/pill_blue.png"), # slick
 ]
-const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT"]
+const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
 var _p2_hits := 0
 var _p2_ready := 0.0
@@ -86,10 +87,12 @@ func set_items(items: Array, selected: int) -> void:
 
 
 ## Warnings on Luke's side when Darth's effects are active.
-func set_luke_status(reversed: bool, giant: bool) -> void:
+func set_luke_status(reversed: bool, giant: bool, slick: bool = false) -> void:
 	var parts := []
 	if reversed:
 		parts.append("CONTROLS REVERSED!")
 	if giant:
 		parts.append("GIANT SHIP!")
+	if slick:
+		parts.append("SLIPPERY STEERING!")
 	luke_status.text = "   ".join(parts)

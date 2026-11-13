@@ -15,13 +15,14 @@ const HUNTER := preload("res://scenes/hunter.tscn")
 const PICKUP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldUp.ogg")
 const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 
-enum Item { CHAOS, FLASH_BANG, HUNTER, LASER, GIANT }
-const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT"]
+enum Item { CHAOS, FLASH_BANG, HUNTER, LASER, GIANT, SLICK }
+const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
-@export var item_interval := 5.0
+@export var item_interval := 10.0
 @export var max_items := 3
 @export var chaos_seconds := 2.0
 @export var giant_seconds := 3.0
+@export var slick_seconds := 4.0
 
 @export var speed := 900.0 ## world pixels per second along the track
 ## Gap between the track and the screen edge, in screen pixels.
@@ -36,7 +37,7 @@ var _cooldown := 1.5
 var _track_local := Rect2()
 var items: Array[int] = []
 var selected := 0
-var _item_timer := 5.0
+var _item_timer := 10.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var aim: Line2D = $Aim
@@ -117,6 +118,9 @@ func use_item(target: Vector2) -> void:
 		Item.GIANT:
 			if luke:
 				luke.apply_giant(giant_seconds)
+		Item.SLICK:
+			if luke:
+				luke.apply_slick(slick_seconds)
 		Item.FLASH_BANG:
 			var fb := Node2D.new()
 			fb.set_script(FLASH_BANG)
@@ -171,6 +175,15 @@ func _step_along_track(rect: Rect2, input: Vector2, dist: float) -> void:
 		if score > best_score:
 			best_score = score
 			best = dir
+	if best == 0.0:
+		# At a corner, pressing the way you were going (e.g. left at the
+		# bottom-left corner) carries on round the corner onto the next edge.
+		for dir in [1.0, -1.0]:
+			var behind := _point_on(rect, wrapf(track_pos - dir * 0.002, 0.0, 1.0))
+			var score := (here - behind).normalized().dot(input.normalized())
+			if score > best_score:
+				best_score = score
+				best = dir
 	if best == 0.0:
 		return
 	# Stop exactly at a corner instead of overshooting onto the next edge,

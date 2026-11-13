@@ -6,7 +6,7 @@ extends CharacterBody2D
 signal lives_changed(lives: int)
 signal died
 ## Emitted when chaos / giant start or end, for the HUD.
-signal status_changed(reversed: bool, giant: bool)
+signal status_changed(reversed: bool, giant: bool, slick: bool)
 
 @export var speed := 220.0 ## starting / current speed
 @export var min_speed := 60.0
@@ -41,6 +41,12 @@ var _flame_t := 0.0
 var chaos_time := 0.0
 ## Seconds left at giant size (Darth's Giant item).
 var giant_time := 0.0
+## Seconds left of slippery steering (Darth's Slick item): turning builds up
+## and keeps spinning, and the ship slides instead of following its nose.
+var slick_time := 0.0
+var _move_dir := 0.0 ## direction the ship is actually travelling
+var _ang_vel := 0.0
+var _was_slick := false
 ## Current size multiplier (eases between 1 and giant_scale).
 var size_mult := 1.0
 const GIANT_SCALE := 2.0
@@ -60,6 +66,7 @@ func _ready() -> void:
 	add_to_group("player")
 	lives = max_lives
 	heading = rotation
+	_move_dir = heading
 	shield.visible = false
 	_base_sprite_scale = sprite.scale
 	_base_flame_pos = flame.position
@@ -80,7 +87,18 @@ func _physics_process(delta: float) -> void:
 		var tmp := go
 		go = stop_
 		stop_ = tmp
-	heading += turn * turn_speed * delta
+	if slick_time > 0.0:
+		# Oil on the thrusters: turning speeds up and slows down gradually,
+		# and the travel direction lags behind where the nose points.
+		_ang_vel += turn * turn_speed * 3.0 * delta
+		_ang_vel *= exp(-1.5 * delta)
+		_ang_vel = clampf(_ang_vel, -turn_speed * 1.4, turn_speed * 1.4)
+		heading += _ang_vel * delta
+		_move_dir = rotate_toward(_move_dir, heading, 1.1 * delta)
+	else:
+		_ang_vel = 0.0
+		heading += turn * turn_speed * delta
+		_move_dir = rotate_toward(_move_dir, heading, 8.0 * delta)
 	if go:
 		speed += acceleration * delta
 	if stop_:
@@ -89,7 +107,7 @@ func _physics_process(delta: float) -> void:
 	rotation = heading
 	gravity_grace -= delta
 	drift *= exp(-drift_damping * delta)
-	velocity = Vector2.RIGHT.rotated(heading) * speed + drift
+	velocity = Vector2.RIGHT.rotated(_move_dir) * speed + drift
 
 	var col := move_and_collide(velocity * delta)
 	if col:
@@ -120,20 +138,27 @@ func _update_effects(delta: float) -> void:
 	# Darth's effects.
 	chaos_time = maxf(0.0, chaos_time - delta)
 	giant_time = maxf(0.0, giant_time - delta)
+	slick_time = maxf(0.0, slick_time - delta)
 	var target := GIANT_SCALE if giant_time > 0.0 else 1.0
 	size_mult = move_toward(size_mult, target, delta * 4.0)
 	sprite.scale = _base_sprite_scale * size_mult
 	shield.scale = _base_sprite_scale * size_mult
 	flame.position = _base_flame_pos * size_mult
 	($CollisionShape2D.shape as CircleShape2D).radius = BASE_RADIUS * size_mult
-	var tint := Color(0.85, 0.45, 1.0) if chaos_time > 0.0 else Color.WHITE
+	var tint := Color.WHITE
+	if chaos_time > 0.0:
+		tint = Color(0.85, 0.45, 1.0)
+	elif slick_time > 0.0:
+		tint = Color(0.5, 0.85, 1.0)
 	sprite.modulate = Color(tint, sprite.modulate.a)
 	var reversed := chaos_time > 0.0
 	var giant := giant_time > 0.0
-	if reversed != _was_reversed or giant != _was_giant:
+	var slick := slick_time > 0.0
+	if reversed != _was_reversed or giant != _was_giant or slick != _was_slick:
 		_was_reversed = reversed
 		_was_giant = giant
-		status_changed.emit(reversed, giant)
+		_was_slick = slick
+		status_changed.emit(reversed, giant, slick)
 
 	_flame_t += delta * 30.0
 	var throttle := inverse_lerp(min_speed, max_speed, speed)
@@ -187,3 +212,8 @@ func apply_chaos(seconds: float) -> void:
 ## Darth's Giant item: grow for `seconds`.
 func apply_giant(seconds: float) -> void:
 	giant_time = maxf(giant_time, seconds)
+
+
+## Darth's Slick item: slippery steering for `seconds`.
+func apply_slick(seconds: float) -> void:
+	slick_time = maxf(slick_time, seconds)

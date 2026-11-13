@@ -11,7 +11,7 @@ const FIRE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_
 @export var warn_time := 1.0
 @export var fire_time := 0.4
 @export var length := 6000.0
-@export var beam_width := 70.0
+@export var beam_width := 150.0
 
 var direction := Vector2.RIGHT
 var _t := 0.0
@@ -78,4 +78,4 @@ func _draw() -> void:
 	var urgency := _t / warn_time
 	var blink := 0.5 + 0.5 * sin(_t * lerpf(14.0, 40.0, urgency))
 	var col := Color(1.0, 0.2, 0.2, lerpf(0.25, 0.9, blink))
-	draw_line(Vector2.ZERO, Vector2(length, 0), col, lerpf(6.0, 16.0, urgency))
+	draw_line(Vector2.ZERO, Vector2(length, 0), col, lerpf(10.0, 26.0, urgency))
