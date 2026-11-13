@@ -126,6 +126,13 @@ func _on_player_died() -> void:
 			% [score, "   NEW BEST!" if new_best else "   BEST %d" % best, $AlienAstronaut.hits])
 
 
+## F11 switches between fullscreen and a window.
+func _unhandled_input(event: InputEvent) -> void:
+	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
+		var full := DisplayServer.window_get_mode() >= DisplayServer.WINDOW_MODE_FULLSCREEN
+		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+
+
 func _load_best() -> int:
 	var cfg := ConfigFile.new()
 	if cfg.load(SAVE_PATH) != OK:

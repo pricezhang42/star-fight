@@ -30,7 +30,8 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
 - **Left click:** throw a green comet toward the mouse (recharges for 4 s).
 - **Right click:** use the selected item. **Mouse wheel:** switch item.
 
-**Both:** Enter / R restarts after Luke's ship is lost.
+**Both:** Enter / R restarts after Luke's ship is lost. F11 switches between
+fullscreen (the default) and a window.
 
 ## Darth's items
 
