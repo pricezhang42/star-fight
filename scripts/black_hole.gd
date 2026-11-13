@@ -29,6 +29,7 @@ func _process(delta: float) -> void:
 func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
+	_bend_projectiles(delta)
 	var player := get_tree().get_first_node_in_group("player") as Node2D
 	if player == null or not player.alive or player.gravity_grace > 0.0:
 		return
@@ -44,6 +45,21 @@ func _physics_process(delta: float) -> void:
 		player.heading = (-dir).angle()
 		player.drift = -dir * fling_speed
 		player.gravity_grace = fling_grace
+
+
+## Comets and the hunter's bullets curve toward the hole and are swallowed by
+## the core. (Luke's lasers and Darth's beam are not affected.)
+func _bend_projectiles(delta: float) -> void:
+	for node in get_tree().get_nodes_in_group("bendable"):
+		var to_center: Vector2 = global_position - node.global_position
+		var d := to_center.length()
+		if d > pull_radius:
+			continue
+		if d < core_radius:
+			node.queue_free()
+			continue
+		var falloff := 1.0 - d / pull_radius
+		node.bend(to_center / d * strength * pow(falloff, 1.5) * 2.0 * delta)
 
 
 func _draw() -> void:

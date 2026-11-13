@@ -21,6 +21,7 @@ func setup(pos: Vector2, vel: Vector2, rock_scale: float) -> void:
 
 func _ready() -> void:
 	add_to_group("comets")
+	add_to_group("bendable")
 	# Point the fire trail backwards.
 	trail.direction = -velocity.normalized()
 	if thrower:
@@ -43,3 +44,9 @@ func _physics_process(delta: float) -> void:
 			body.take_hit(global_position)
 			if body.lives < before and is_instance_valid(thrower):
 				thrower.scored_hit()
+
+
+## Black hole pull (see black_hole.gd).
+func bend(velocity_change: Vector2) -> void:
+	velocity += velocity_change
+	trail.direction = -velocity.normalized()

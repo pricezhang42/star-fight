@@ -49,6 +49,7 @@ func _process(delta: float) -> void:
 		var k := (_t - warn_time) / fire_time
 		_beam.modulate.a = 1.0 - k * k
 		_check_hit()
+		_carve_rocks()
 	if _t >= warn_time + fire_time:
 		queue_free()
 
@@ -69,6 +70,17 @@ func _check_hit() -> void:
 		luke.take_hit(closest)
 		if luke.lives < before:
 			hit_luke.emit()
+
+
+## The beam destroys every breakable rock along its line.
+func _carve_rocks() -> void:
+	var a := global_position
+	var b := a + direction * length
+	for rock in get_tree().get_nodes_in_group("rocks"):
+		var p: Vector2 = rock.global_position
+		var c := Geometry2D.get_closest_point_to_segment(p, a, b)
+		if p.distance_to(c) < beam_width * 0.5 + rock.radius:
+			rock.shatter()
 
 
 func _draw() -> void:

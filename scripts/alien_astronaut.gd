@@ -1,8 +1,8 @@
 extends Node2D
 ## Darth (player 2): an alien astronaut that runs along a fixed rectangular
 ## track around the edge of the screen (arrow keys), throws a comet at the
-## mouse every few seconds (left click), and picks up a random item every few
-## seconds that can be used with right click (mouse wheel to switch).
+## mouse every few seconds (left click), and collects item crates that appear
+## on the track; items are used with right click (mouse wheel to switch).
 
 signal hits_changed(hits: int)
 signal cooldown_changed(ready_fraction: float)
@@ -15,12 +15,18 @@ const FLASH_BANG := preload("res://scripts/flash_bang.gd")
 const LASER := preload("res://scripts/laser_beam.gd")
 const HUNTER := preload("res://scenes/hunter.tscn")
 const PICKUP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldUp.ogg")
+const CRATE_TEX := preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow.png")
 const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 
 enum Item { CHAOS, FLASH_BANG, HUNTER, LASER, GIANT, SLICK }
 const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
-@export var item_interval := 10.0
+## Seconds between new crates appearing on the track (random in this range).
+@export var crate_interval := Vector2(6.0, 8.0)
+@export var crate_lifetime := 8.0
+@export var max_crates := 2
+## How close (world px along the track) Darth must get to grab a crate.
+@export var pickup_distance := 90.0
 @export var max_items := 3
 @export var chaos_seconds := 2.0
 @export var giant_seconds := 3.0
@@ -39,7 +45,9 @@ var _cooldown := 1.5
 var _track_local := Rect2()
 var items: Array[int] = []
 var selected := 0
-var _item_timer := 10.0
+var _item_timer := 4.0 ## time until the next crate appears
+## Crates on the track: each is {"t": track fraction, "life": seconds, "node": Sprite2D}.
+var _crates: Array = []
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var aim: Line2D = $Aim
@@ -73,14 +81,8 @@ func _process(delta: float) -> void:
 	if _cooldown <= 0.0 and Input.is_action_just_pressed("p2_throw"):
 		_throw(mouse)
 
-	# Items.
-	_item_timer -= delta
-	if _item_timer <= 0.0:
-		_item_timer = item_interval
-		if items.size() < max_items:
-			items.append(randi() % Item.size())
-			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
-			_items_updated()
+	# Item crates on the track: Darth has to run over them to collect.
+	_update_crates(rect, delta)
 	if items.size() > 0:
 		if Input.is_action_just_pressed("p2_next"):
 			selected = (selected + 1) % items.size()
@@ -100,6 +102,44 @@ func _throw(target: Vector2) -> void:
 	comet.thrower = self
 	get_tree().current_scene.add_child(comet)
 	throw_sound.play()
+
+
+func _update_crates(rect: Rect2, delta: float) -> void:
+	var perimeter := 2.0 * (rect.size.x + rect.size.y)
+	# Spawn.
+	_item_timer -= delta
+	if _item_timer <= 0.0:
+		_item_timer = randf_range(crate_interval.x, crate_interval.y)
+		if _crates.size() < max_crates:
+			# Somewhere Darth has to travel to: at least 15% of the track away.
+			var t := wrapf(track_pos + randf_range(0.15, 0.85), 0.0, 1.0)
+			var spr := Sprite2D.new()
+			spr.texture = CRATE_TEX
+			spr.scale = Vector2.ONE * 2.6
+			spr.top_level = true
+			spr.z_index = 9
+			add_child(spr)
+			_crates.append({"t": t, "life": crate_lifetime, "node": spr})
+	# Update, blink, collect, expire.
+	for i in range(_crates.size() - 1, -1, -1):
+		var c: Dictionary = _crates[i]
+		c.life -= delta
+		var spr: Sprite2D = c.node
+		spr.global_position = _point_on(rect, c.t)
+		spr.rotation = sin(c.life * 3.0) * 0.25
+		spr.visible = c.life > 2.0 or fmod(c.life, 0.3) > 0.12
+		var gap := absf(c.t - track_pos)
+		gap = minf(gap, 1.0 - gap) * perimeter
+		if gap < pickup_distance and items.size() < max_items:
+			items.append(randi() % Item.size())
+			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
+			Fx.flash(get_tree().current_scene, spr.global_position, CRATE_TEX, 4.0, 0.3)
+			_items_updated()
+			spr.queue_free()
+			_crates.remove_at(i)
+		elif c.life <= 0.0:
+			spr.queue_free()
+			_crates.remove_at(i)
 
 
 ## Use the selected item, aimed at `target` (world position) where relevant.

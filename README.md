@@ -24,13 +24,20 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
   0.4 s the ship flies straight through rocks, planets and satellites (it
   keeps passing through until it is clear, so it never gets stuck), and it
   can't lose a life, so it can also punch through a laser, comet or bullet.
-  Recharges in 10 s; shown under Luke's lives.
+  Recharges in 10 s; shown under Luke's lives. Rocks the dash passes
+  through get shoved out of the way.
+- **E:** push. A shockwave in a cone in front of the ship (about 450 px,
+  70 degrees wide) knocks asteroids loose and away and nudges comets.
+  Recharges in 6 s.
 
 **Darth, the alien astronaut**
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
   screen. Press along the edge you're on to move. At a corner, press toward
   the next edge, or keep pressing the way you were going, to go round it.
 - **Left click:** throw a green comet toward the mouse (recharges for 4 s).
+- **Crates:** item crates appear at random spots on Darth's track every 6-8 s
+  (at most 2 at once, each lasts 8 s and blinks before it vanishes). Run over
+  one to collect a random item.
 - **Right click:** use the selected item. **Mouse wheel:** switch item.
 
 **Both:** Enter / R restarts after Luke's ship is lost. F11 switches between
@@ -38,7 +45,7 @@ fullscreen (the default) and a window.
 
 ## Darth's items
 
-Darth gets a random item every 10 seconds and can hold up to 3 (shown under
+Darth collects items from crates on the track and can hold up to 3 (shown under
 Darth's line at the top of the screen; the selected one is highlighted).
 
 | Item | Effect |
@@ -46,7 +53,7 @@ Darth's line at the top of the screen; the selected one is highlighted).
 | Chaos | Luke's controls are swapped for 2 s (A/D and W/S). Luke's ship turns purple and "CONTROLS REVERSED!" shows. |
 | Flash | A dark cloud covers the spot Darth clicked for 4 s, after a bright flash. |
 | Hunter | A purple enemy ship spawns next to Darth, always hunts Luke (slightly faster than Luke's top speed), shoots, and dies in 3 hits. It leaves after 20 s. |
-| Laser | A flashing red warning line points where Darth clicked for 1 s, then a beam fires along it and costs Luke a life if it touches him. It passes through everything, so dodge sideways during the warning. |
+| Laser | A flashing red warning line points where Darth clicked for 1 s, then a beam fires along it and costs Luke a life if it touches him. It passes through everything and destroys every breakable rock on its line, so it can also carve tunnels. Dodge sideways during the warning. |
 | Giant | Luke's ship and hitbox double in size for 3 s. |
 | Slick | Oil on Luke's thrusters for 4 s: turning builds up and keeps spinning after you let go, and the ship slides along its old path instead of following its nose. The ship turns light blue and "SLIPPERY STEERING!" shows. |
 
@@ -54,18 +61,27 @@ Darth's HITS count comet and laser hits on Luke.
 
 ## Rules
 
+- **Asteroids** (the rocks in belts and clumps) are physics objects: they sit
+  still until something knocks them, then drift and bump into each other
+  before slowing to a stop. Luke's lasers break small ones in 1 hit and big
+  ones in 3. The rocks along the top and bottom edge are unbreakable.
+- **Moving asteroids** drift around and bounce off everything.
+- **Comets** fly across the screen (at most 2 random ones at once).
+- **Black holes** bend comets and the hunter's bullets (not Luke's lasers or
+  Darth's beam) and swallow them at the core.
+- Only Darth's hunter shoots (at most 2 of its bullets in the air at once).
+  Satellites, red ships and chasers are obstacles to avoid.
+
 - You have 5 lives. Rocks, planets, satellites, aliens, alien lasers, comets
   and black hole cores each cost one and give a 3 second shield (you bounce off
   solid objects).
 - Planets come in many sizes, each with a satellite circling it. Blue
   satellites are harmless, but still solid, so don't fly into them.
-- Top middle: two red starships fly a looping curved path and shoot at you
-  (3 hits each to destroy).
+- Top middle: a red starship flies a looping curved path (3 hits to destroy).
 - Middle: a black hole pulls your ship in. The faint ring shows how far the
   pull reaches. Touching the core costs a life and throws you well clear; for 1.6 seconds
   afterwards black holes can't pull you, so you can't get stuck.
-- Bottom middle: a planet with an enemy satellite that orbits and shoots at
-  you (4 hits to destroy).
+- Bottom middle: a planet with a red satellite (4 hits to destroy).
 - Right: asteroid belts (clumps plus short vertical and diagonal strips).
 - After that the level keeps generating forever from the same pieces. It
   starts sparse and calm (one obstacle per column at most, small clumps,
@@ -74,7 +90,7 @@ Darth's HITS count comet and laser hits on Luke.
   planets and black holes, more enemy ships and chasers, more hostile
   satellites, faster and more frequent enemy fire, stronger black holes and
   more random comets. You can fly back a little, but not all the way.
-- Red alien fighters hover around and chase you once you get close.
+- Red alien fighters hover around and ram you once you get close.
 - Burning comets fly across the screen at random and block your lasers.
 
 ## Editing the level

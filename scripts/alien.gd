@@ -7,9 +7,13 @@ const BOOM_TEX := preload("res://assets/kenney_space_shooter_redux/lasers/laserR
 const ZAP := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 const SHOOT := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser2.ogg")
 const BULLET_SPEED := 430.0
+## Most enemy bullets that can be flying at once.
+const MAX_ENEMY_BULLETS := 2
 
 
 static func fire(owner_node: Node2D, dir: Vector2, muzzle := 34.0) -> void:
+	if owner_node.get_tree().get_nodes_in_group("enemy_bullets").size() >= MAX_ENEMY_BULLETS:
+		return
 	var b := BULLET.instantiate()
 	b.setup(owner_node.global_position + dir.normalized() * muzzle, dir, false, BULLET_SPEED)
 	owner_node.get_tree().current_scene.add_child(b)

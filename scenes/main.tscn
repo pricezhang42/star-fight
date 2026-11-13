@@ -2,6 +2,8 @@
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="main"]
 [ext_resource type="Script" path="res://scripts/level_generator.gd" id="gen"]
+[ext_resource type="PackedScene" path="res://scenes/rock.tscn" id="rock"]
+[ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/meteors/meteorGrey_big3.png" id="rocktex"]
 [ext_resource type="PackedScene" path="res://scenes/alien_astronaut.tscn" id="astronaut"]
 [ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/backgrounds/darkPurple.png" id="bg"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="player"]
@@ -38,6 +40,7 @@ region_rect = Rect2(0, 0, 4600, 2600)
 [node name="Borders" type="Node2D" parent="."]
 
 [node name="Top" parent="Borders" instance=ExtResource("wall")]
+breakable = false
 length = 3348.0
 vertical = false
 spacing = 52.0
@@ -45,6 +48,7 @@ rock_scale = 0.6
 random_seed = 11
 
 [node name="Bottom" parent="Borders" instance=ExtResource("wall")]
+breakable = false
 position = Vector2(0, 1680)
 length = 3348.0
 vertical = false
@@ -53,6 +57,7 @@ rock_scale = 0.6
 random_seed = 12
 
 [node name="Left" parent="Borders" instance=ExtResource("wall")]
+breakable = false
 length = 1680.0
 spacing = 52.0
 rock_scale = 0.6
@@ -118,6 +123,21 @@ length = 380.0
 spacing = 64.0
 rock_scale = 0.8
 random_seed = 32
+
+[node name="MovingRock1" parent="AsteroidBelts" instance=ExtResource("rock")]
+position = Vector2(1050, 1350)
+texture = ExtResource("rocktex")
+radius = 34.0
+sprite_scale = 0.9
+moving = true
+start_velocity = Vector2(70, -60)
+
+[node name="MovingRock2" parent="AsteroidBelts" instance=ExtResource("rock")]
+position = Vector2(2250, 700)
+radius = 30.0
+sprite_scale = 0.75
+moving = true
+start_velocity = Vector2(-60, 80)
 
 [node name="Aliens" type="Node2D" parent="."]
 

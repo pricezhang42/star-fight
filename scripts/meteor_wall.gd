@@ -2,6 +2,8 @@
 extends StaticBody2D
 ## A line of meteors that acts as a barrier. Optionally leaves a gap the
 ## player can fly through. Regenerates live in the editor when edited.
+## With `breakable` on (the default) each meteor is its own physics rock that
+## can be pushed and destroyed; turn it off for the solid map border.
 
 @export var length := 1200.0:
 	set(v):
@@ -50,6 +52,14 @@ const BROWN := [
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_big3.png"),
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_big4.png"),
 ]
+## Breakable strips are made of separate physics rocks (see rock.gd).
+@export var breakable := true:
+	set(v):
+		breakable = v
+		_rebuild()
+@export var rock_hp := 3
+
+const ROCK := preload("res://scenes/rock.tscn")
 const ROCK_RADIUS := 42.0
 
 
@@ -76,6 +86,19 @@ func _rebuild() -> void:
 			var jitter := rng.randf_range(-8.0, 8.0)
 			var pos := Vector2(jitter, t) if vertical else Vector2(t, jitter)
 			var s := rock_scale * rng.randf_range(0.9, 1.1)
+
+			if breakable and not Engine.is_editor_hint():
+				var rock := ROCK.instantiate()
+				rock.texture = textures[rng.randi() % textures.size()]
+				rock.position = pos
+				rock.rotation = rng.randf() * TAU
+				rock.sprite_scale = s
+				rock.radius = ROCK_RADIUS * s * 0.9
+				rock.hp = rock_hp
+				rock.set_meta("generated", true)
+				add_child(rock)
+				t += spacing
+				continue
 
 			var spr := Sprite2D.new()
 			spr.texture = textures[rng.randi() % textures.size()]

@@ -28,6 +28,7 @@ const TEXTURES := [
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_med1.png"),
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorGrey_med1.png"),
 ]
+const ROCK := preload("res://scenes/rock.tscn")
 const BIG_RADIUS := 42.0
 const MED_RADIUS := 20.0
 
@@ -61,6 +62,18 @@ func _rebuild() -> void:
 		if not ok:
 			continue
 		placed.append(Vector3(pos.x, pos.y, r))
+		if not Engine.is_editor_hint():
+			# In game every rock is its own physics object (see rock.gd).
+			var rock := ROCK.instantiate()
+			rock.texture = TEXTURES[idx]
+			rock.position = pos
+			rock.rotation = rng.randf() * TAU
+			rock.sprite_scale = s
+			rock.radius = r * 0.9
+			rock.hp = 3 if idx < 4 else 1
+			rock.set_meta("generated", true)
+			add_child(rock)
+			continue
 		var spr := Sprite2D.new()
 		spr.texture = TEXTURES[idx]
 		spr.position = pos

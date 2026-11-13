@@ -10,6 +10,8 @@ extends CharacterBody2D
 @export var health := 2
 @export var fire_range := 520.0
 @export var fire_cooldown := 1.3
+## Only Darth's hunter shoots; map chasers just ram.
+@export var can_shoot := false
 ## Seconds before it leaves on its own (0 = never). Used by Darth's hunter.
 @export var lifetime := 0.0
 
@@ -52,7 +54,7 @@ func _physics_process(delta: float) -> void:
 	move_and_slide()
 
 	_cooldown -= delta
-	if chasing and _cooldown <= 0.0 and to_target.length() < fire_range \
+	if can_shoot and chasing and _cooldown <= 0.0 and to_target.length() < fire_range \
 			and absf(angle_difference(heading, to_target.angle())) < 0.35:
 		_cooldown = fire_cooldown
 		Alien.fire(self, Vector2.RIGHT.rotated(heading))

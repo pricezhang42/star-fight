@@ -12,6 +12,13 @@ const SATELLITE := preload("res://scenes/satellite.tscn")
 const BLACK_HOLE := preload("res://scenes/black_hole.tscn")
 const PATH_SHIP := preload("res://scenes/path_ship.tscn")
 const CHASER := preload("res://scenes/chaser.tscn")
+const ROCK := preload("res://scenes/rock.tscn")
+const ROCK_TEXTURES := [
+	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_big1.png"),
+	preload("res://assets/kenney_space_shooter_redux/meteors/meteorGrey_big3.png"),
+	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_med1.png"),
+	preload("res://assets/kenney_space_shooter_redux/meteors/meteorGrey_med1.png"),
+]
 const PLANET_TEXTURES := [
 	preload("res://assets/wisedawn_planets/planet19.png"),
 	preload("res://assets/wisedawn_planets/planet14.png"),
@@ -64,6 +71,7 @@ func _build_chunk(x0: float) -> void:
 		border.length = chunk_width - 52.0
 		border.spacing = 52.0
 		border.rock_scale = 0.6
+		border.breakable = false
 		border.random_seed = _rng.randi()
 		chunk.add_child(border)
 
@@ -98,6 +106,22 @@ func _build_chunk(x0: float) -> void:
 				count += int(_rng.randf() < 0.1 + 0.6 * difficulty) + int(_rng.randf() < 0.45 * difficulty - 0.05)
 			for i in count:
 				_add_small(chunk, Vector2(cx + _rng.randf_range(-80.0, 80.0), bands[i]), difficulty)
+
+	# Moving asteroids that drift and bounce: one early on, up to four later.
+	for i in 1 + int(3.0 * difficulty + _rng.randf() * 0.99):
+		var rock := ROCK.instantiate()
+		var idx := _rng.randi() % ROCK_TEXTURES.size()
+		var big := idx < 2
+		var s := _rng.randf_range(0.7, 1.0)
+		rock.texture = ROCK_TEXTURES[idx]
+		rock.sprite_scale = s
+		rock.radius = (42.0 if big else 20.0) * s * 0.9
+		rock.hp = 3 if big else 1
+		rock.moving = true
+		rock.start_velocity = Vector2.RIGHT.rotated(_rng.randf() * TAU) * _rng.randf_range(50.0, 90.0 + 50.0 * difficulty)
+		rock.cruise_speed = 110.0 + 60.0 * difficulty
+		rock.position = Vector2(x0 + _rng.randf_range(100.0, chunk_width - 100.0), _rng.randf_range(0.15, 0.85) * world_height)
+		chunk.add_child(rock)
 
 	# Enemy ships: rare and slow-firing at first, common and aggressive later.
 	if _rng.randf() < 0.1 + 0.7 * difficulty:

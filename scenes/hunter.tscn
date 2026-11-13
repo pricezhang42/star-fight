@@ -23,6 +23,7 @@ health = 3
 fire_range = 600.0
 fire_cooldown = 1.1
 lifetime = 20.0
+can_shoot = true
 
 [node name="Sprite2D" type="Sprite2D" parent="."]
 modulate = Color(0.75, 0.6, 1, 1)

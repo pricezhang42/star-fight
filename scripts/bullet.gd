@@ -32,6 +32,9 @@ func setup(pos: Vector2, dir: Vector2, player_owned: bool, bolt_speed: float) ->
 
 func _ready() -> void:
 	sprite.texture = PLAYER_TEX if from_player else ALIEN_TEX
+	if not from_player:
+		add_to_group("enemy_bullets")
+		add_to_group("bendable") # black holes bend enemy shots, not Luke's
 	body_entered.connect(_on_body_entered)
 	area_entered.connect(_on_area_entered)
 
@@ -70,3 +73,11 @@ func _impact() -> void:
 	_done = true
 	Fx.flash(get_parent(), global_position, PLAYER_HIT if from_player else ALIEN_HIT, 0.7, 0.15)
 	queue_free()
+
+
+## Black hole pull (enemy bullets only; see black_hole.gd).
+func bend(velocity_change: Vector2) -> void:
+	var v := direction * speed + velocity_change
+	speed = v.length()
+	direction = v / maxf(speed, 0.001)
+	rotation = direction.angle()

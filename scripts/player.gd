@@ -10,6 +10,8 @@ signal died
 signal status_changed(reversed: bool, giant: bool, slick: bool)
 ## 0..1 how recharged the dash is (1 = ready).
 signal dash_changed(ready_fraction: float)
+## 0..1 how recharged the push is (1 = ready).
+signal push_changed(ready_fraction: float)
 
 @export var speed := 220.0 ## starting / current speed
 @export var min_speed := 60.0
@@ -32,6 +34,12 @@ signal dash_changed(ready_fraction: float)
 ## planets and satellites. If it is still inside one when this ends, it keeps
 ## passing through (and stays untouchable) until it is clear.
 @export var dash_phase_time := 0.4
+## Push (E): shockwave in a cone in front of the ship that shoves asteroids
+## and comets away.
+@export var push_cooldown := 6.0
+@export var push_range := 450.0
+@export var push_half_angle := 35.0 ## degrees each side of the nose
+@export var push_strength := 650.0 ## velocity given to a rock right in front
 ## Push away from whatever hit the ship (added to the ship's current speed,
 ## so it always clears the obstacle).
 @export var knockback := 600.0
@@ -39,6 +47,8 @@ signal dash_changed(ready_fraction: float)
 const BULLET := preload("res://scenes/bullet.tscn")
 const SHOOT_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser1.ogg")
 const DASH_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_twoTone.ogg")
+const PUSH_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldDown.ogg")
+const PushWave := preload("res://scripts/push_wave.gd")
 
 var lives := 0
 ## Extra velocity from outside forces such as black holes.
@@ -50,6 +60,9 @@ var _fire_back_cd := 0.0
 var _dash_cd := 0.0
 var _dash_iframe := 0.0
 var _phase := 0.0
+var _push_cd := 0.0
+var _last_push_report := -1.0
+var _shoved := {} ## rocks already shoved by the current dash
 var _phasing := false
 var _last_dash_report := -1.0
 var heading := 0.0
@@ -160,7 +173,65 @@ func _physics_process(delta: float) -> void:
 		_last_dash_report = dash_ready
 		dash_changed.emit(dash_ready)
 
+	# Push.
+	_push_cd = maxf(0.0, _push_cd - delta)
+	if Input.is_action_just_pressed("push") and _push_cd <= 0.0:
+		_push()
+	var push_ready := 1.0 - _push_cd / push_cooldown
+	if absf(push_ready - _last_push_report) > 0.01 or (push_ready >= 1.0 and _last_push_report < 1.0):
+		_last_push_report = push_ready
+		push_changed.emit(push_ready)
+
+	# A dash shoves any rock the ship passes through.
+	if _phasing:
+		_dash_shove()
+
 	_update_effects(delta)
+
+
+func _push() -> void:
+	_push_cd = push_cooldown
+	var fwd := Vector2.RIGHT.rotated(heading)
+	var cos_limit := cos(deg_to_rad(push_half_angle))
+	for rock in get_tree().get_nodes_in_group("rocks"):
+		var to: Vector2 = rock.global_position - global_position
+		var d := to.length()
+		if d < 1.0 or d > push_range:
+			continue
+		if to.normalized().dot(fwd) < cos_limit:
+			continue
+		var power := push_strength * lerpf(1.0, 0.35, d / push_range)
+		rock.knock(to.normalized() * power)
+	for comet in get_tree().get_nodes_in_group("comets"):
+		var to: Vector2 = comet.global_position - global_position
+		var d := to.length()
+		if d < 1.0 or d > push_range or to.normalized().dot(fwd) < cos_limit:
+			continue
+		comet.velocity += to.normalized() * push_strength * lerpf(0.8, 0.3, d / push_range)
+	# Visible shockwave.
+	var wave := PushWave.new()
+	wave.position = global_position
+	wave.rotation = heading
+	wave.reach = push_range
+	wave.half_angle = deg_to_rad(push_half_angle)
+	get_tree().current_scene.add_child(wave)
+	Fx.sound(get_tree().current_scene, PUSH_SOUND, -2.0)
+
+
+func _dash_shove() -> void:
+	var fwd := Vector2.RIGHT.rotated(heading)
+	var reach := BASE_RADIUS * size_mult + 50.0
+	for rock in get_tree().get_nodes_in_group("rocks"):
+		if _shoved.has(rock):
+			continue
+		var to: Vector2 = rock.global_position - global_position
+		if to.length() < reach + rock.radius:
+			_shoved[rock] = true
+			# Knock it sideways out of the ship's path and a bit forward.
+			var side := to.slide(fwd).normalized()
+			if side == Vector2.ZERO:
+				side = fwd.orthogonal()
+			rock.knock(side * 420.0 + fwd * 260.0)
 
 
 func _shoot(dir: Vector2, shot_speed: float) -> void:
@@ -261,6 +332,7 @@ func _dash() -> void:
 	_dash_cd = dash_cooldown
 	_dash_iframe = dash_iframes
 	_phase = dash_phase_time
+	_shoved.clear()
 	drift += Vector2.RIGHT.rotated(heading) * dash_speed
 	Fx.sound(get_tree().current_scene, DASH_SOUND, -4.0)
 

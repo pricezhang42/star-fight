@@ -16,6 +16,8 @@ extends AnimatableBody2D
 @export var hostile := false
 @export var health := 4
 @export var fire_range := 620.0
+## Map enemies no longer shoot (only Darth's hunter does).
+@export var can_shoot := false
 @export var fire_cooldown := 1.6
 
 var _cooldown := 1.0
@@ -42,7 +44,7 @@ func _physics_process(delta: float) -> void:
 		return
 	_cooldown -= delta
 	var player := Alien.find_player(self)
-	if player and _cooldown <= 0.0:
+	if can_shoot and player and _cooldown <= 0.0:
 		var to_player := player.global_position - global_position
 		if to_player.length() < fire_range:
 			_cooldown = fire_cooldown

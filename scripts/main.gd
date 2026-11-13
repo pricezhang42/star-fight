@@ -14,6 +14,8 @@ extends Node2D
 ## Seconds between random comets at the start (easy) and at full difficulty.
 @export var comet_interval_easy := Vector2(4.0, 6.5)
 @export var comet_interval_hard := Vector2(1.0, 2.2)
+## Most random comets on screen at once (Darth's thrown ones don't count).
+@export var max_random_comets := 2
 ## Distance (past the opening section) over which comets ramp up.
 @export var ramp_distance := 20000.0
 @export var comet_speed := Vector2(260, 420)
@@ -56,6 +58,7 @@ func _ready() -> void:
 	alien.shot_by_luke.connect(_on_darth_shot)
 	player.status_changed.connect(hud.set_luke_status)
 	player.dash_changed.connect(hud.set_dash)
+	player.push_changed.connect(hud.set_push)
 	hud.set_p2_hits(0)
 	_start_x = player.global_position.x
 	_furthest_x = _start_x
@@ -92,7 +95,9 @@ func _process(delta: float) -> void:
 		var d := clampf((_furthest_x - 3400.0) / ramp_distance, 0.0, 1.0)
 		var interval := comet_interval_easy.lerp(comet_interval_hard, d)
 		_comet_timer = randf_range(interval.x, interval.y)
-		_spawn_comet()
+		var random_comets := get_tree().get_nodes_in_group("comets").filter(func(c): return c.thrower == null)
+		if random_comets.size() < max_random_comets:
+			_spawn_comet()
 
 	# Slide the tiled background along with the camera (snapped to whole
 	# tiles so it doesn't visibly move).
