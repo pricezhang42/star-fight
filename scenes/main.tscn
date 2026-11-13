@@ -1,0 +1,210 @@
+[gd_scene load_steps=20 format=3]
+
+[ext_resource type="Script" path="res://scripts/main.gd" id="main"]
+[ext_resource type="Script" path="res://scripts/level_generator.gd" id="gen"]
+[ext_resource type="PackedScene" path="res://scenes/alien_astronaut.tscn" id="astronaut"]
+[ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/backgrounds/darkPurple.png" id="bg"]
+[ext_resource type="PackedScene" path="res://scenes/player.tscn" id="player"]
+[ext_resource type="PackedScene" path="res://scenes/meteor_wall.tscn" id="wall"]
+[ext_resource type="PackedScene" path="res://scenes/asteroid_cluster.tscn" id="cluster"]
+[ext_resource type="PackedScene" path="res://scenes/planet.tscn" id="planet"]
+[ext_resource type="PackedScene" path="res://scenes/satellite.tscn" id="satellite"]
+[ext_resource type="PackedScene" path="res://scenes/path_ship.tscn" id="pathship"]
+[ext_resource type="PackedScene" path="res://scenes/chaser.tscn" id="chaser"]
+[ext_resource type="PackedScene" path="res://scenes/black_hole.tscn" id="blackhole"]
+[ext_resource type="PackedScene" path="res://scenes/hud.tscn" id="hud"]
+[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet19.png" id="planet19"]
+[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet14.png" id="planet14"]
+[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet3.png" id="planet3"]
+[ext_resource type="Texture2D" path="res://assets/wisedawn_planets/planet8.png" id="planet8"]
+[ext_resource type="AudioStream" path="res://assets/kenney_space_shooter_redux/sounds/sfx_lose.ogg" id="lose"]
+
+[sub_resource type="Curve2D" id="ship_loop"]
+_data = {
+"points": PackedVector2Array(0, 110, 0, -110, -380, 0, -210, 0, 210, 0, 0, -150, 0, -110, 0, 110, 380, 0, 210, 0, -210, 0, 0, 170, 0, 110, 0, -110, -380, 0)
+}
+point_count = 5
+
+[node name="Main" type="Node2D"]
+script = ExtResource("main")
+world_size = Vector2(3400, 1680)
+
+[node name="Background" type="Sprite2D" parent="."]
+texture_repeat = 2
+position = Vector2(-600, -400)
+texture = ExtResource("bg")
+centered = false
+region_enabled = true
+region_rect = Rect2(0, 0, 4600, 2600)
+
+[node name="Borders" type="Node2D" parent="."]
+
+[node name="Top" parent="Borders" instance=ExtResource("wall")]
+length = 3348.0
+vertical = false
+spacing = 52.0
+rock_scale = 0.6
+random_seed = 11
+
+[node name="Bottom" parent="Borders" instance=ExtResource("wall")]
+position = Vector2(0, 1680)
+length = 3348.0
+vertical = false
+spacing = 52.0
+rock_scale = 0.6
+random_seed = 12
+
+[node name="Left" parent="Borders" instance=ExtResource("wall")]
+length = 1680.0
+spacing = 52.0
+rock_scale = 0.6
+random_seed = 13
+
+[node name="PlanetA" parent="." instance=ExtResource("planet")]
+position = Vector2(650, 462)
+radius = 160.0
+texture = ExtResource("planet19")
+
+[node name="Satellite" parent="PlanetA" instance=ExtResource("satellite")]
+orbit_radius = 270.0
+angle = 1.0
+orbit_speed = 1.0
+
+[node name="ShipPath" type="Path2D" parent="."]
+position = Vector2(1250, 378)
+curve = SubResource("ship_loop")
+
+[node name="RedShip1" parent="ShipPath" instance=ExtResource("pathship")]
+
+[node name="RedShip2" parent="ShipPath" instance=ExtResource("pathship")]
+progress = 850.0
+
+[node name="BlackHole" parent="." instance=ExtResource("blackhole")]
+position = Vector2(1450, 1008)
+pull_radius = 400.0
+
+[node name="PlanetB" parent="." instance=ExtResource("planet")]
+position = Vector2(2000, 1512)
+radius = 210.0
+texture = ExtResource("planet14")
+spin_speed = -0.04
+
+[node name="EnemySatellite" parent="PlanetB" instance=ExtResource("satellite")]
+orbit_radius = 300.0
+angle = -2.0
+orbit_speed = -0.8
+hostile = true
+
+[node name="PlanetC" parent="." instance=ExtResource("planet")]
+position = Vector2(2250, 868)
+radius = 75.0
+texture = ExtResource("planet3")
+spin_speed = 0.08
+
+[node name="Satellite" parent="PlanetC" instance=ExtResource("satellite")]
+orbit_radius = 150.0
+angle = 2.5
+orbit_speed = 1.3
+
+[node name="PlanetD" parent="." instance=ExtResource("planet")]
+position = Vector2(3300, 532)
+radius = 95.0
+texture = ExtResource("planet8")
+spin_speed = -0.06
+
+[node name="Satellite" parent="PlanetD" instance=ExtResource("satellite")]
+orbit_radius = 175.0
+orbit_speed = -1.1
+hostile = true
+
+[node name="AsteroidBelts" type="Node2D" parent="."]
+
+[node name="Clump" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(2830, 266)
+radius = 130.0
+count = 12
+rock_scale = 1.0
+random_seed = 5
+
+[node name="StripTop" parent="AsteroidBelts" instance=ExtResource("wall")]
+position = Vector2(2550, 322)
+length = 300.0
+spacing = 64.0
+rock_scale = 0.8
+brown = true
+random_seed = 31
+
+[node name="StripBottom" parent="AsteroidBelts" instance=ExtResource("wall")]
+position = Vector2(2550, 1092)
+length = 260.0
+spacing = 64.0
+rock_scale = 0.8
+brown = true
+random_seed = 33
+
+[node name="DiagonalStrip" parent="AsteroidBelts" instance=ExtResource("wall")]
+position = Vector2(3100, 728)
+rotation = 0.487
+length = 380.0
+spacing = 64.0
+rock_scale = 0.8
+random_seed = 32
+
+[node name="ClumpLowerLeft" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(1000, 1372)
+radius = 110.0
+count = 10
+rock_scale = 0.9
+random_seed = 7
+
+[node name="ClumpTop" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(1950, 224)
+radius = 90.0
+count = 8
+rock_scale = 0.9
+random_seed = 8
+
+[node name="ClumpRight" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(3250, 1400)
+radius = 110.0
+count = 10
+rock_scale = 0.9
+random_seed = 9
+
+[node name="ClumpFarLeft" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(400, 1250)
+radius = 90.0
+count = 8
+rock_scale = 0.9
+random_seed = 10
+
+[node name="ClumpLowRight" parent="AsteroidBelts" instance=ExtResource("cluster")]
+position = Vector2(2800, 1470)
+radius = 80.0
+count = 7
+rock_scale = 0.9
+random_seed = 12
+
+[node name="Aliens" type="Node2D" parent="."]
+
+[node name="Chaser1" parent="Aliens" instance=ExtResource("chaser")]
+position = Vector2(2300, 420)
+rotation = 3.1416
+
+[node name="Chaser2" parent="Aliens" instance=ExtResource("chaser")]
+position = Vector2(3350, 1064)
+rotation = 3.1416
+
+[node name="LevelGenerator" type="Node2D" parent="."]
+script = ExtResource("gen")
+world_height = 1680.0
+
+[node name="Player" parent="." instance=ExtResource("player")]
+position = Vector2(130, 910)
+
+[node name="AlienAstronaut" parent="." instance=ExtResource("astronaut")]
+
+[node name="HUD" parent="." instance=ExtResource("hud")]
+
+[node name="LoseSound" type="AudioStreamPlayer" parent="."]
+stream = ExtResource("lose")

@@ -1,0 +1,20 @@
+[gd_scene load_steps=3 format=3]
+
+[ext_resource type="Script" path="res://scripts/bullet.gd" id="1"]
+
+[sub_resource type="CapsuleShape2D" id="c1"]
+radius = 5.0
+height = 34.0
+
+[node name="Bullet" type="Area2D"]
+collision_layer = 0
+collision_mask = 25
+script = ExtResource("1")
+
+[node name="Sprite2D" type="Sprite2D" parent="."]
+rotation = 1.5708
+scale = Vector2(0.75, 0.75)
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="."]
+rotation = 1.5708
+shape = SubResource("c1")
