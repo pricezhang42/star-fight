@@ -7,6 +7,8 @@ extends Node2D
 signal hits_changed(hits: int)
 signal cooldown_changed(ready_fraction: float)
 signal items_changed(items: Array, selected: int)
+## Luke's laser hit Darth (Luke earns points).
+signal shot_by_luke
 
 const COMET := preload("res://scenes/comet.tscn")
 const FLASH_BANG := preload("res://scripts/flash_bang.gd")
@@ -45,6 +47,7 @@ var _item_timer := 10.0
 
 
 func _process(delta: float) -> void:
+	_hit_grace = maxf(0.0, _hit_grace - delta)
 	var rect := _track_rect()
 	if track_pos < 0.0:
 		var w := rect.size.x
@@ -143,6 +146,21 @@ func use_item(target: Vector2) -> void:
 
 func _items_updated() -> void:
 	items_changed.emit(items, selected)
+
+
+## Luke's lasers can hit Darth. Each hit gives Luke points (handled by main).
+## A short grace period stops one burst from counting many times.
+var _hit_grace := 0.0
+const HIT_GRACE := 0.05
+
+
+func take_damage(_amount: int) -> void:
+	if _hit_grace > 0.0:
+		return
+	_hit_grace = HIT_GRACE
+	sprite.modulate = Color(3, 3, 3)
+	create_tween().tween_property(sprite, "modulate", Color(0.7, 1, 0.6, 1), 0.25)
+	shot_by_luke.emit()
 
 
 ## Called by a thrown comet when it damages the ship.

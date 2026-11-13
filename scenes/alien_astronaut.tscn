@@ -1,8 +1,11 @@
-[gd_scene load_steps=4 format=3]
+[gd_scene load_steps=5 format=3]
 
 [ext_resource type="Script" path="res://scripts/alien_astronaut.gd" id="1"]
 [ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_extension/spaceAstronauts_013.png" id="2"]
 [ext_resource type="AudioStream" path="res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg" id="3"]
+
+[sub_resource type="CircleShape2D" id="hurt"]
+radius = 52.0
 
 [node name="AlienAstronaut" type="Node2D"]
 z_index = 10
@@ -20,3 +23,11 @@ texture = ExtResource("2")
 [node name="ThrowSound" type="AudioStreamPlayer" parent="."]
 stream = ExtResource("3")
 volume_db = -4.0
+
+[node name="Hurtbox" type="Area2D" parent="." groups=["alien_hurtbox"]]
+collision_layer = 8
+collision_mask = 0
+monitoring = false
+
+[node name="CollisionShape2D" type="CollisionShape2D" parent="Hurtbox"]
+shape = SubResource("hurt")

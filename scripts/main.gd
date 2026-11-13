@@ -7,6 +7,8 @@ extends Node2D
 @export var world_size := Vector2(3400, 1200)
 ## Score points per pixel flown to the right.
 @export var score_per_pixel := 0.1
+## Points Luke earns for each laser hit on Darth.
+@export var darth_hit_points := 100
 ## How far behind their furthest point the player may fly back.
 @export var backtrack_limit := 1100.0
 ## Seconds between random comets at the start (easy) and at full difficulty.
@@ -27,6 +29,8 @@ var _comet_timer := 3.0
 var _start_x := 0.0
 var _furthest_x := 0.0
 var score := 0
+## Points from shooting Darth (added to the distance score).
+var bonus := 0
 var best := 0
 
 @onready var player = $Player
@@ -49,6 +53,7 @@ func _ready() -> void:
 	alien.hits_changed.connect(hud.set_p2_hits)
 	alien.cooldown_changed.connect(hud.set_p2_cooldown)
 	alien.items_changed.connect(hud.set_items)
+	alien.shot_by_luke.connect(_on_darth_shot)
 	player.status_changed.connect(hud.set_luke_status)
 	player.dash_changed.connect(hud.set_dash)
 	hud.set_p2_hits(0)
@@ -96,7 +101,7 @@ func _process(delta: float) -> void:
 
 	var x: float = player.global_position.x
 	_furthest_x = maxf(_furthest_x, x)
-	score = int((_furthest_x - _start_x) * score_per_pixel)
+	score = int((_furthest_x - _start_x) * score_per_pixel) + bonus
 	hud.set_score(score, maxi(score, best))
 
 	# Keep the level built ahead, forget what is far behind, and stop the
@@ -124,6 +129,30 @@ func _on_player_died() -> void:
 		_save_best(best)
 	hud.show_message("LUKE'S SHIP IS LOST\n\nSCORE %d%s\nDARTH'S HITS %d\n\nPRESS ENTER TO FLY AGAIN"
 			% [score, "   NEW BEST!" if new_best else "   BEST %d" % best, $AlienAstronaut.hits])
+
+
+func _on_darth_shot() -> void:
+	if _over:
+		return
+	bonus += darth_hit_points
+	var alien: Node2D = $AlienAstronaut
+	# Floating "+100" at Darth.
+	var label := Label.new()
+	label.text = "+%d" % darth_hit_points
+	var ls := LabelSettings.new()
+	ls.font = hud.p2_label.label_settings.font
+	ls.font_size = 64
+	ls.font_color = Color(1.0, 0.9, 0.3)
+	ls.outline_size = 8
+	ls.outline_color = Color.BLACK
+	label.label_settings = ls
+	label.position = alien.global_position + Vector2(-60, -120)
+	label.z_index = 60
+	add_child(label)
+	var tw := label.create_tween().set_parallel()
+	tw.tween_property(label, "position:y", label.position.y - 120.0, 0.8)
+	tw.tween_property(label, "modulate:a", 0.0, 0.8)
+	tw.chain().tween_callback(label.queue_free)
 
 
 ## F11 switches between fullscreen and a window.

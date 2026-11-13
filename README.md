@@ -3,7 +3,8 @@
 An endless 2D top-down Godot 4 game. Your ship always drifts forward; fly as
 far right as you can through asteroid belts, planets, black holes and alien
 ships. Your score is the distance you reach (furthest point, 1 point per 10
-pixels), and your best score is saved between runs. The camera zooms so the
+pixels) plus 100 points for every laser hit on Darth, and your best score is
+saved between runs. The camera zooms so the
 whole level height fills the screen, and the window opens at about 92% of your
 monitor.
 
@@ -19,9 +20,11 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
 - **Space / J:** fire lasers forward
 - **B:** fire lasers backward out of the tail (same rate as the front gun;
   both can fire at once)
-- **Shift:** dash forward (about +370 px over half a second). Luke can't
-  lose a life for the first 0.3 s of a dash, so it can punch through a
-  laser, comet or bullet. Recharges in 10 s; shown under Luke's lives.
+- **Shift:** dash forward (about +370 px over half a second). For the first
+  0.4 s the ship flies straight through rocks, planets and satellites (it
+  keeps passing through until it is clear, so it never gets stuck), and it
+  can't lose a life, so it can also punch through a laser, comet or bullet.
+  Recharges in 10 s; shown under Luke's lives.
 
 **Darth, the alien astronaut**
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
@@ -52,7 +55,7 @@ Darth's HITS count comet and laser hits on Luke.
 ## Rules
 
 - You have 5 lives. Rocks, planets, satellites, aliens, alien lasers, comets
-  and black hole cores each cost one and give a short shield (you bounce off
+  and black hole cores each cost one and give a 3 second shield (you bounce off
   solid objects).
 - Planets come in many sizes, each with a satellite circling it. Blue
   satellites are harmless, but still solid, so don't fly into them.

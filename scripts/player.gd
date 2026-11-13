@@ -18,7 +18,7 @@ signal dash_changed(ready_fraction: float)
 @export var brake_force := 420.0 ## speed lost per second while holding S
 @export var turn_speed := 3.2 ## radians per second
 @export var max_lives := 5
-@export var invulnerable_time := 1.5
+@export var invulnerable_time := 3.0
 @export var fire_cooldown := 0.22
 @export var bullet_speed := 900.0
 ## How fast outside pushes (black hole pull, knockback) fade, per second.
@@ -28,6 +28,10 @@ signal dash_changed(ready_fraction: float)
 @export var dash_cooldown := 10.0
 ## Seconds at the start of a dash during which nothing costs a life.
 @export var dash_iframes := 0.3
+## Seconds at the start of a dash during which the ship flies through rocks,
+## planets and satellites. If it is still inside one when this ends, it keeps
+## passing through (and stays untouchable) until it is clear.
+@export var dash_phase_time := 0.4
 ## Push away from whatever hit the ship (added to the ship's current speed,
 ## so it always clears the obstacle).
 @export var knockback := 600.0
@@ -45,6 +49,8 @@ var _fire_cd := 0.0
 var _fire_back_cd := 0.0
 var _dash_cd := 0.0
 var _dash_iframe := 0.0
+var _phase := 0.0
+var _phasing := false
 var _last_dash_report := -1.0
 var heading := 0.0
 var alive := true
@@ -122,6 +128,7 @@ func _physics_process(delta: float) -> void:
 	drift *= exp(-drift_damping * delta)
 	velocity = Vector2.RIGHT.rotated(_move_dir) * speed + drift
 
+	_update_phasing(delta)
 	var col := move_and_collide(velocity * delta)
 	if col:
 		# Get knocked back off the obstacle and take damage, but keep facing
@@ -146,7 +153,7 @@ func _physics_process(delta: float) -> void:
 	_dash_iframe = maxf(0.0, _dash_iframe - delta)
 	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
 		_dash()
-	if _dash_iframe > 0.0:
+	if _dash_iframe > 0.0 or _phasing:
 		_spawn_ghost()
 	var dash_ready := 1.0 - _dash_cd / dash_cooldown
 	if absf(dash_ready - _last_dash_report) > 0.01 or (dash_ready >= 1.0 and _last_dash_report < 1.0):
@@ -205,7 +212,7 @@ func _update_effects(delta: float) -> void:
 ## Called by barriers (internally) and by alien hitboxes.
 ## `from` is the position of whatever hit us, used to knock the ship away.
 func take_hit(from: Vector2 = Vector2.INF) -> void:
-	if not alive or _invuln > 0.0 or _dash_iframe > 0.0:
+	if not alive or _invuln > 0.0 or _dash_iframe > 0.0 or _phasing:
 		return
 	if from != Vector2.INF:
 		# Knocked back away from what hit us; the nose stays pointing the same way.
@@ -253,6 +260,7 @@ func apply_slick(seconds: float) -> void:
 func _dash() -> void:
 	_dash_cd = dash_cooldown
 	_dash_iframe = dash_iframes
+	_phase = dash_phase_time
 	drift += Vector2.RIGHT.rotated(heading) * dash_speed
 	Fx.sound(get_tree().current_scene, DASH_SOUND, -4.0)
 
@@ -269,3 +277,24 @@ func _spawn_ghost() -> void:
 	var tw := g.create_tween()
 	tw.tween_property(g, "modulate:a", 0.0, 0.3)
 	tw.tween_callback(g.queue_free)
+
+
+## While dashing, ignore solid obstacles (collision mask off). Once the dash
+## time is over, only switch collisions back on when the ship is clear of
+## everything, so it never gets stuck inside a rock.
+func _update_phasing(delta: float) -> void:
+	_phase = maxf(0.0, _phase - delta)
+	var want := _phase > 0.0
+	if not want and _phasing and _overlapping_solid():
+		want = true
+	_phasing = want
+	collision_mask = 0 if _phasing else 1
+	sprite.self_modulate.a = 0.55 if _phasing else 1.0
+
+
+func _overlapping_solid() -> bool:
+	var query := PhysicsShapeQueryParameters2D.new()
+	query.shape = $CollisionShape2D.shape
+	query.transform = global_transform
+	query.collision_mask = 1
+	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
