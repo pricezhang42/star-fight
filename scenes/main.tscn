@@ -75,13 +75,13 @@ position = Vector2(1250, 378)
 curve = SubResource("ship_loop")
 
 [node name="RedShip1" parent="ShipPath" instance=ExtResource("pathship")]
-
-[node name="RedShip2" parent="ShipPath" instance=ExtResource("pathship")]
-progress = 850.0
+speed = 150.0
+fire_cooldown = 2.8
 
 [node name="BlackHole" parent="." instance=ExtResource("blackhole")]
 position = Vector2(1450, 1008)
 pull_radius = 400.0
+strength = 1000.0
 
 [node name="PlanetB" parent="." instance=ExtResource("planet")]
 position = Vector2(2000, 1512)
@@ -94,6 +94,7 @@ orbit_radius = 300.0
 angle = -2.0
 orbit_speed = -0.8
 hostile = true
+fire_cooldown = 3.0
 
 [node name="PlanetC" parent="." instance=ExtResource("planet")]
 position = Vector2(2250, 868)
@@ -115,7 +116,6 @@ spin_speed = -0.06
 [node name="Satellite" parent="PlanetD" instance=ExtResource("satellite")]
 orbit_radius = 175.0
 orbit_speed = -1.1
-hostile = true
 
 [node name="AsteroidBelts" type="Node2D" parent="."]
 
@@ -150,20 +150,6 @@ spacing = 64.0
 rock_scale = 0.8
 random_seed = 32
 
-[node name="ClumpLowerLeft" parent="AsteroidBelts" instance=ExtResource("cluster")]
-position = Vector2(1000, 1372)
-radius = 110.0
-count = 10
-rock_scale = 0.9
-random_seed = 7
-
-[node name="ClumpTop" parent="AsteroidBelts" instance=ExtResource("cluster")]
-position = Vector2(1950, 224)
-radius = 90.0
-count = 8
-rock_scale = 0.9
-random_seed = 8
-
 [node name="ClumpRight" parent="AsteroidBelts" instance=ExtResource("cluster")]
 position = Vector2(3250, 1400)
 radius = 110.0
@@ -171,29 +157,7 @@ count = 10
 rock_scale = 0.9
 random_seed = 9
 
-[node name="ClumpFarLeft" parent="AsteroidBelts" instance=ExtResource("cluster")]
-position = Vector2(400, 1250)
-radius = 90.0
-count = 8
-rock_scale = 0.9
-random_seed = 10
-
-[node name="ClumpLowRight" parent="AsteroidBelts" instance=ExtResource("cluster")]
-position = Vector2(2800, 1470)
-radius = 80.0
-count = 7
-rock_scale = 0.9
-random_seed = 12
-
 [node name="Aliens" type="Node2D" parent="."]
-
-[node name="Chaser1" parent="Aliens" instance=ExtResource("chaser")]
-position = Vector2(2300, 420)
-rotation = 3.1416
-
-[node name="Chaser2" parent="Aliens" instance=ExtResource("chaser")]
-position = Vector2(3350, 1064)
-rotation = 3.1416
 
 [node name="LevelGenerator" type="Node2D" parent="."]
 script = ExtResource("gen")

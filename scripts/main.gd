@@ -9,8 +9,11 @@ extends Node2D
 @export var score_per_pixel := 0.1
 ## How far behind their furthest point the player may fly back.
 @export var backtrack_limit := 1100.0
-## Seconds between comets (random in this range).
-@export var comet_interval := Vector2(1.0, 2.4)
+## Seconds between random comets at the start (easy) and at full difficulty.
+@export var comet_interval_easy := Vector2(4.0, 6.5)
+@export var comet_interval_hard := Vector2(1.0, 2.2)
+## Distance (past the opening section) over which comets ramp up.
+@export var ramp_distance := 20000.0
 @export var comet_speed := Vector2(260, 420)
 ## Fraction of the monitor the game window takes up at launch.
 @export var window_fraction := 0.92
@@ -20,7 +23,7 @@ const SAVE_PATH := "user://star_fights.cfg"
 static var _window_sized := false
 
 var _over := false
-var _comet_timer := 1.5
+var _comet_timer := 3.0
 var _start_x := 0.0
 var _furthest_x := 0.0
 var score := 0
@@ -78,7 +81,9 @@ func _fit_height() -> void:
 func _process(delta: float) -> void:
 	_comet_timer -= delta
 	if _comet_timer <= 0.0:
-		_comet_timer = randf_range(comet_interval.x, comet_interval.y)
+		var d := clampf((_furthest_x - 3400.0) / ramp_distance, 0.0, 1.0)
+		var interval := comet_interval_easy.lerp(comet_interval_hard, d)
+		_comet_timer = randf_range(interval.x, interval.y)
 		_spawn_comet()
 
 	# Slide the tiled background along with the camera (snapped to whole

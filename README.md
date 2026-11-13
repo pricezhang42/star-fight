@@ -42,9 +42,11 @@ Two players share one keyboard and mouse.
 - Bottom middle: a planet with an enemy satellite that orbits and shoots at
   you (4 hits to destroy).
 - Right: asteroid belts (clumps plus short vertical and diagonal strips).
-- After that the level keeps generating forever from the same pieces,
-  getting busier (more enemy ships, more hostile satellites, faster chasers)
-  the further you go. You can fly back a little, but not all the way.
+- After that the level keeps generating forever from the same pieces. It
+  starts sparse and calm and ramps up until a score of about 2000: more rocks,
+  planets and black holes, more enemy ships and chasers, more hostile
+  satellites, faster and more frequent enemy fire, stronger black holes and
+  more random comets. You can fly back a little, but not all the way.
 - Red alien fighters hover around and chase you once you get close.
 - Burning comets fly across the screen at random and block your lasers.
 
