@@ -48,8 +48,8 @@ Both players use the same controls, each on their own computer:
 - **W:** thrust. Hold to speed up; let go and the ship coasts to a stop in
   about a second.
 - **S:** brake hard.
-- **Mouse:** aim the blasters. They fire toward the cursor, whichever way the
-  ship's nose points.
+- **Mouse:** aim the blaster. The turret on top of the ship swivels to point
+  at the cursor and fires that way, whichever way the ship's nose points.
 - **Left click (hold):** fire.
 - **Shift:** dash forward (about +370 px over half a second). For the first
   0.4 s the ship flies straight through rocks, planets and satellites (it

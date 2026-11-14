@@ -1,8 +1,9 @@
 extends CharacterBody2D
 ## A player's starship. Player 1 is blue, player 2 is red; otherwise they are
 ## identical. A/D rotate the ship, W thrusts (let go and the ship coasts to a
-## stop in about a second), S brakes hard, Shift dashes. The blasters fire
-## toward the mouse while the left button is held.
+## stop in about a second), S brakes hard, Shift dashes. The blaster turret on
+## top of the ship swivels to follow the mouse and fires toward it while the
+## left button is held.
 ## Momentum: speed builds up while W is held and bleeds off when it isn't.
 ## Player 1 reads this computer's keyboard and mouse; in a LAN game player 2's
 ## input arrives over the network (see Net).
@@ -89,6 +90,7 @@ var _was_giant := false
 
 @onready var sprite: Sprite2D = $Sprite2D
 @onready var flame: Sprite2D = $Flame
+@onready var turret: Node2D = $Turret
 @onready var shield: Sprite2D = $Shield
 @onready var hit_sound: AudioStreamPlayer = $HitSound
 
@@ -168,13 +170,14 @@ func _physics_process(delta: float) -> void:
 		position += n * 8.0
 		take_hit()
 
-	# Blasters fire toward the mouse, whichever way the nose points.
+	# The turret swivels to the mouse and fires that way, whichever way the
+	# nose points. (With the mouse right on the ship it keeps its last angle.)
+	if aim.distance_to(global_position) > 1.0:
+		turret.global_rotation = (aim - global_position).angle()
 	_fire_cd -= delta
 	if firing and _fire_cd <= 0.0:
 		_fire_cd = fire_cooldown
-		var dir := (aim - global_position).normalized()
-		if dir == Vector2.ZERO:
-			dir = Vector2.RIGHT.rotated(heading)
+		var dir := Vector2.RIGHT.rotated(turret.global_rotation)
 		_shoot(dir, bullet_speed + maxf(0.0, velocity.dot(dir)))
 
 	# Dash.
@@ -228,6 +231,7 @@ func _update_effects(delta: float) -> void:
 	size_mult = move_toward(size_mult, target, delta * 4.0)
 	sprite.scale = _base_sprite_scale * size_mult
 	shield.scale = _base_sprite_scale * size_mult
+	turret.scale = Vector2.ONE * size_mult
 	flame.position = _base_flame_pos * size_mult
 	($CollisionShape2D.shape as CircleShape2D).radius = BASE_RADIUS * size_mult
 	var tint := Color.WHITE
@@ -256,6 +260,7 @@ func _update_effects(delta: float) -> void:
 	else:
 		sprite.modulate.a = 1.0
 		shield.visible = false
+	turret.modulate.a = sprite.modulate.a * sprite.self_modulate.a
 
 
 ## Called by barriers (internally) and by alien hitboxes.
@@ -287,6 +292,7 @@ func stop() -> void:
 func _die() -> void:
 	stop()
 	sprite.visible = false
+	turret.visible = false
 	shield.visible = false
 	collision_layer = 0 # nothing can hit the wreck
 	collision_mask = 0

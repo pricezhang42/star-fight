@@ -19,6 +19,7 @@ Files used (in `assets/kenney_space_shooter_redux/`):
 | Chasing alien | `enemies/enemyRed1.png` |
 | Asteroid belts and borders | `meteors/meteorGrey_big1-4.png`, `meteors/meteorBrown_big1-4.png`, `meteors/meteorBrown_med1.png`, `meteors/meteorGrey_med1.png` |
 | Engine flame, shield | `effects/fire00.png`, `effects/shield1.png` |
+| Blaster turret on each ship | `parts/turretBase_big.png`, `parts/gun04.png` |
 | Life icons | `ui/playerLife1_blue.png`, `ui/playerLife1_red.png` |
 | Powerup icons (not in use at the moment) | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
 | Hunter ship (tinted purple; not in use at the moment) | `enemies/enemyBlack1.png` |
