@@ -1,12 +1,12 @@
-# Star Fights
+# Star Fights (vertical version)
 
-An endless 2D top-down Godot 4 game. Your ship always drifts forward; fly as
-far right as you can through asteroid belts, planets, black holes and alien
-ships. Your score is the distance you reach (furthest point, 1 point per 10
-pixels) plus 100 points for every laser hit on Darth, and your best score is
-saved between runs. The camera zooms so the
-whole level height fills the screen, and the window opens at about 92% of your
-monitor.
+This is the **`vertical` branch**: the same game, but it scrolls upwards.
+Luke starts at the bottom and climbs; the level keeps generating above him.
+The play area is 2600 px wide with rock walls on the left and right, and the
+camera fits the full width on screen. Your score is how high you climb
+(furthest point, 1 point per 10 pixels) plus 100 points for every laser hit
+on Darth. The best score is saved separately from the side-scrolling version
+on `main`. The game starts in fullscreen.
 
 ## Controls
 
@@ -75,25 +75,28 @@ Darth's HITS count comet and laser hits on Luke.
   solid objects).
 - Planets come in many sizes, each with a satellite circling it. Blue
   satellites are harmless, but still solid, so don't fly into them.
-- Top middle: a red starship flies a looping curved path (3 hits to destroy).
-- Middle: a black hole pulls your ship in. The faint ring shows how far the
+- A red starship flies a looping curved path (3 hits to destroy).
+- In the middle: a black hole pulls your ship in. The faint ring shows how far the
   pull reaches. Touching the core costs a life and throws you well clear; for 1.6 seconds
   afterwards black holes can't pull you, so you can't get stuck.
-- Bottom middle: a planet with a red satellite (4 hits to destroy).
-- Right: asteroid belts (clumps plus short vertical and diagonal strips).
+- A planet with a red satellite (4 hits to destroy).
+- Near the top: asteroid belts (clumps plus short vertical and diagonal strips).
 - After that the level keeps generating forever from the same pieces. It
   starts sparse and calm (one obstacle per column at most, small clumps,
   many empty columns), stays easy until a score of about 640, then ramps up
   until a score of about 2600: more rocks,
   planets and black holes, more enemy ships and chasers, more hostile
   satellites, faster and more frequent enemy fire, stronger black holes and
-  more random comets. You can fly back a little, but not all the way.
+  more random comets. You can fly back down a little, but not all the way.
 - Red alien fighters hover around and ram you once you get close.
 - Burning comets fly across the screen at random and block your lasers.
 
 ## Editing the level
 
-Open `scenes/main.tscn` to edit the hand-made opening section (x 0 to 3400, height 1680).
+Open `scenes/main.tscn` to edit the hand-made opening section. All level
+content lives under the `Level` node, which is rotated 90 degrees: inside it
+the level is laid out sideways (local x = height climbed, local y = 0 to 2600
+across), exactly like the side-scrolling version.
 Everything after it comes from `scripts/level_generator.gd`; tweak its
 `chunk_width`, `ramp_distance` and the odds inside `_build_chunk` to change
 how the endless part plays.
