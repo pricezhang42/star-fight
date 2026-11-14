@@ -2,7 +2,7 @@ extends Area2D
 ## A power-up floating on the map. The first ship to fly through it takes it,
 ## as long as that ship has a free slot (otherwise it stays put).
 ## A weapon capsule (red, "WEAPON" tag) applies to the ship's basic laser right
-## away instead and doesn't use a slot.
+## away for 20 s instead and doesn't use a slot.
 
 const CAPSULE := preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow.png")
 const WEAPON_CAPSULE := preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed.png")

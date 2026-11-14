@@ -13,8 +13,8 @@ const ICONS := [
 	preload("res://assets/kenney_space_shooter_redux/powerups/shield_gold.png"),
 ]
 
-## Weapon pickups change the basic laser as soon as they're collected, until
-## that ship loses a life. NONE is the normal laser.
+## Weapon pickups change the basic laser as soon as they're collected, for
+## 20 s. NONE is the normal laser.
 enum Weapon { NONE, RAPID, ROCKET }
 const WEAPON_NAMES := ["LASER", "RAPID LASER", "ROCKET"]
 const WEAPON_ICONS := [

@@ -22,6 +22,7 @@ var _dash := {1: -1.0, 2: -1.0}
 var _laser := {1: -1.0, 2: -1.0}
 var _items := {1: [], 2: []}
 var _weapon := {1: 0, 2: 0}
+var _weapon_left := {1: 0.0, 2: 0.0}
 var _shield := {1: 0.0, 2: 0.0}
 var _selected := {1: 0, 2: 0}
 var _danger := {1: 0.0, 2: 0.0}
@@ -72,6 +73,8 @@ func set_laser(id: int, ready_fraction: float) -> void:
 	_laser[id] = ready_fraction
 	var label: Label = _laser_labels[id]
 	var wname: String = PowerUps.WEAPON_NAMES[_weapon[id]]
+	if _weapon[id] != 0:
+		wname += " %ds" % ceili(_weapon_left[id])
 	var extra := ("   SHIELD %ds" % ceili(_shield[id])) if _shield[id] > 0.0 else ""
 	if ready_fraction >= 1.0:
 		label.text = wname + " READY" + extra
@@ -82,8 +85,9 @@ func set_laser(id: int, ready_fraction: float) -> void:
 
 
 ## Weapon pickup in use and Shield time, shown on that ship's laser line.
-func set_loadout(id: int, weapon: int, shield_left: float) -> void:
+func set_loadout(id: int, weapon: int, weapon_left: float, shield_left: float) -> void:
 	_weapon[id] = weapon
+	_weapon_left[id] = weapon_left
 	_shield[id] = shield_left
 	set_laser(id, maxf(_laser[id], 0.0))
 
@@ -151,6 +155,7 @@ func get_net_state() -> Dictionary:
 		"laser": [_laser[1], _laser[2]],
 		"items": [_items[1], _items[2]],
 		"weapon": [_weapon[1], _weapon[2]],
+		"weapon_left": [_weapon_left[1], _weapon_left[2]],
 		"shield": [_shield[1], _shield[2]],
 		"sel": [_selected[1], _selected[2]],
 		"danger": [_danger[1], _danger[2]],
@@ -168,8 +173,9 @@ func apply_net_state(st: Dictionary) -> void:
 		set_lives(id, st.lives[i])
 		if st.dash[i] != _dash[id]:
 			set_dash(id, st.dash[i])
-		if st.weapon[i] != _weapon[id] or st.shield[i] != _shield[id]:
+		if st.weapon[i] != _weapon[id] or st.shield[i] != _shield[id] or st.weapon_left[i] != _weapon_left[id]:
 			_weapon[id] = st.weapon[i]
+			_weapon_left[id] = st.weapon_left[i]
 			_shield[id] = st.shield[i]
 			set_laser(id, maxf(st.laser[i], 0.0))
 		elif st.laser[i] != _laser[id]:

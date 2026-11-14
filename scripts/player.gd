@@ -22,8 +22,8 @@ signal dash_changed(ready_fraction: float)
 signal laser_changed(ready_fraction: float)
 ## The power-ups held (PowerUps.Kind values) and which one is selected.
 signal items_changed(items: Array, selected: int)
-## Weapon pickup in use (PowerUps.Weapon) and seconds of Shield left, for the HUD.
-signal loadout_changed(weapon: int, shield_left: float)
+## Weapon pickup in use, its seconds left, and seconds of Shield left, for the HUD.
+signal loadout_changed(weapon: int, weapon_left: float, shield_left: float)
 
 ## 1 = blue ship (this computer), 2 = red ship.
 @export var player_id := 1
@@ -63,6 +63,7 @@ const ROCKET := preload("res://scripts/rocket.gd")
 const BUBBLE_TEX := preload("res://assets/kenney_space_shooter_redux/effects/shield3.png")
 const POP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldDown.ogg")
 const SHIELD_SECONDS := 10.0
+const WEAPON_SECONDS := 20.0
 const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 ## Power-up tuning.
 const SHRINK_SCALE := 0.6
@@ -100,8 +101,9 @@ var selected := 0
 var shrink_time := 0.0
 ## Seconds left on the Shield power-up's bubble (it pops on the first hit).
 var shield_time := 0.0
-## Weapon pickup in use (PowerUps.Weapon); lasts until this ship loses a life.
+## Weapon pickup in use (PowerUps.Weapon) and seconds it has left (20 s).
 var weapon := 0
+var weapon_time := 0.0
 var _bubble: Sprite2D
 var _last_loadout := ""
 var heading := 0.0
@@ -298,6 +300,10 @@ func _update_effects(delta: float) -> void:
 	slick_time = maxf(0.0, slick_time - delta)
 	shrink_time = maxf(0.0, shrink_time - delta)
 	shield_time = maxf(0.0, shield_time - delta)
+	if weapon != PowerUps.Weapon.NONE:
+		weapon_time = maxf(0.0, weapon_time - delta)
+		if weapon_time <= 0.0:
+			weapon = PowerUps.Weapon.NONE
 	_update_bubble()
 	var target := 1.0
 	if giant_time > 0.0:
@@ -363,7 +369,6 @@ func take_hit(from: Vector2 = Vector2.INF) -> void:
 		drift = drift.slide(away) + away * (knockback + speed)
 	lives -= 1
 	lives_changed.emit(lives)
-	weapon = PowerUps.Weapon.NONE # weapon pickups last until you lose a life
 	Fx.sound(get_tree().current_scene, hit_sound.stream)
 	if lives <= 0:
 		_die()
@@ -510,9 +515,11 @@ func _use_item(aim: Vector2) -> void:
 	Fx.sound(scene, USE_SOUND, -6.0)
 
 
-## Weapon pickup: applies straight away (no slot), until this ship loses a life.
+## Weapon pickup: applies straight away (no slot) for 20 s. A new one
+## replaces the current one and restarts the 20 s.
 func set_weapon(w: int) -> bool:
 	weapon = w
+	weapon_time = WEAPON_SECONDS
 	_fire_cd = minf(_fire_cd, fire_cooldown * (0.5 if w == PowerUps.Weapon.RAPID else 1.0))
 	return true
 
@@ -531,7 +538,7 @@ func _update_bubble() -> void:
 		_bubble.modulate = Color(c, 0.75 if blink else 0.25)
 		_bubble.global_rotation = 0.0
 		_bubble.scale = Vector2.ONE * 0.75 * size_mult * (1.0 + 0.04 * sin(Time.get_ticks_msec() * 0.01))
-	var key := "%d:%d" % [weapon, ceili(shield_time)]
+	var key := "%d:%d:%d" % [weapon, ceili(weapon_time), ceili(shield_time)]
 	if key != _last_loadout:
 		_last_loadout = key
-		loadout_changed.emit(weapon, shield_time)
+		loadout_changed.emit(weapon, weapon_time, shield_time)

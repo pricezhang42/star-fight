@@ -79,7 +79,7 @@ func _ready() -> void:
 		p.dash_changed.connect(func(f: float): hud.set_dash(id, f))
 		p.laser_changed.connect(func(f: float): hud.set_laser(id, f))
 		p.items_changed.connect(func(it: Array, sel: int): hud.set_items(id, it, sel))
-		p.loadout_changed.connect(func(w: int, sh: float): hud.set_loadout(id, w, sh))
+		p.loadout_changed.connect(func(w: int, wl: float, sh: float): hud.set_loadout(id, w, wl, sh))
 		p.died.connect(_on_player_died.bind(p))
 		hud.set_lives(p.player_id, p.lives)
 	_size_window()

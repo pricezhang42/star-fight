@@ -97,8 +97,8 @@ are full the capsule stays where it is.
 | Shield | A bubble in your ship's colour absorbs the next hit of any kind (no life lost), then pops. Lasts up to 10 s. |
 
 **Weapon capsules** (red, tagged "WEAPON", about 1 in 4 capsules) don't use a
-slot: they change your basic laser the moment you fly through them, until you
-lose a life. Picking up another weapon replaces the current one. The laser line
+slot: they change your basic laser the moment you fly through them, for 20 s.
+Picking up another weapon replaces the current one and restarts the 20 s. The laser line
 in the HUD shows the weapon in use (and any Shield time left).
 
 | Weapon | Effect |
