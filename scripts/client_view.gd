@@ -67,6 +67,8 @@ func _process(_delta: float) -> void:
 		buttons |= Net.BTN_BRAKE
 	if Input.is_action_pressed("fire"):
 		buttons |= Net.BTN_FIRE
+	if Input.is_action_pressed("boost"):
+		buttons |= Net.BTN_BOOST
 	Net.send_input(Input.get_axis("turn_left", "turn_right"), buttons, mouse)
 	for action in ["dash", "use_item", "next_item", "restart"]:
 		if Input.is_action_just_pressed(action):

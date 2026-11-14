@@ -1,7 +1,7 @@
 extends CharacterBody2D
 ## A player's starship. Player 1 is blue, player 2 is red; otherwise they are
 ## identical. A/D rotate the ship, W thrusts (let go and the ship coasts to a
-## stop in about a second), S brakes hard, Shift dashes. The turret on top of
+## stop in about a second), S brakes hard, Shift boosts (uses stamina), Space dashes. The turret on top of
 ## the ship swivels to follow the mouse. Left click fires a single heavy laser
 ## shot along the turret (5 s cooldown). It flies like the comets Darth used to
 ## throw: fast, bounces off asteroids and knocks them away, flies over
@@ -18,6 +18,8 @@ signal died
 signal status_changed(reversed: bool, giant: bool, slick: bool)
 ## 0..1 how recharged the dash is (1 = ready).
 signal dash_changed(ready_fraction: float)
+## 0..1 stamina for the boost, and whether the ship is boosting right now.
+signal stamina_changed(fraction: float, boosting: bool)
 ## 0..1 how recharged the laser is (1 = ready).
 signal laser_changed(ready_fraction: float)
 ## The power-ups held (PowerUps.Kind values) and which one is selected.
@@ -32,6 +34,15 @@ var remote := false
 @export var speed := 0.0 ## current speed (starts parked)
 @export var min_speed := 0.0
 @export var max_speed := 340.0
+## Boost (hold Shift): faster top speed and acceleration while stamina lasts.
+@export var boost_speed_mult := 1.6
+@export var boost_accel_mult := 2.2
+@export var stamina_max := 100.0
+@export var stamina_drain := 35.0 ## per second while boosting (~3 s of boost)
+@export var stamina_regen := 18.0 ## per second once you've stopped boosting
+@export var stamina_regen_delay := 0.8 ## seconds after a boost before it refills
+## After running dry, boost can't start again until stamina is back to this.
+@export var stamina_restart := 25.0
 @export var acceleration := 420.0 ## speed gained per second while holding W
 @export var coast_drag := 320.0 ## speed lost per second when W is released
 @export var brake_force := 1400.0 ## speed lost per second while holding S
@@ -94,6 +105,13 @@ var _shoved := {} ## rocks already shoved by the current dash
 var _phasing := false
 var _last_dash_report := -1.0
 var _last_laser_report := -1.0
+## Boost stamina.
+var stamina := 100.0
+var boosting := false
+var _stamina_locked := false
+var _regen_wait := 0.0
+var _last_stamina_report := -1.0
+var _last_boosting := false
 ## Power-ups held (up to PowerUps.MAX_HELD) and the selected slot.
 var items: Array = []
 var selected := 0
@@ -161,6 +179,7 @@ func _physics_process(delta: float) -> void:
 	var stop_ := false
 	var firing := false
 	var dash_now := false
+	var boost_held := false
 	var use_now := false
 	var next_now := false
 	var aim := global_position
@@ -169,6 +188,7 @@ func _physics_process(delta: float) -> void:
 		go = Net.remote_buttons & Net.BTN_THRUST != 0
 		stop_ = Net.remote_buttons & Net.BTN_BRAKE != 0
 		firing = Net.remote_buttons & Net.BTN_FIRE != 0
+		boost_held = Net.remote_buttons & Net.BTN_BOOST != 0
 		dash_now = Net.take_event("dash")
 		use_now = Net.take_event("use_item")
 		next_now = Net.take_event("next_item")
@@ -178,6 +198,7 @@ func _physics_process(delta: float) -> void:
 		go = Input.is_action_pressed("thrust")
 		stop_ = Input.is_action_pressed("brake")
 		firing = Input.is_action_pressed("fire")
+		boost_held = Input.is_action_pressed("boost")
 		dash_now = Input.is_action_just_pressed("dash")
 		use_now = Input.is_action_just_pressed("use_item")
 		next_now = Input.is_action_just_pressed("next_item")
@@ -196,13 +217,37 @@ func _physics_process(delta: float) -> void:
 		_ang_vel = 0.0
 		heading += turn * turn_speed * delta
 		_move_dir = rotate_toward(_move_dir, heading, 8.0 * delta)
-	if go:
-		speed += acceleration * delta
+	# Boost: uses stamina; pushes the ship forward even without W.
+	boosting = boost_held and not stop_ and stamina > 0.0 and not _stamina_locked
+	if boosting:
+		stamina = maxf(0.0, stamina - stamina_drain * delta)
+		_regen_wait = stamina_regen_delay
+		if stamina <= 0.0:
+			_stamina_locked = true # ran dry: wait for it to refill a bit
+	else:
+		_regen_wait = maxf(0.0, _regen_wait - delta)
+		if _regen_wait <= 0.0:
+			stamina = minf(stamina_max, stamina + stamina_regen * delta)
+		if _stamina_locked and stamina >= stamina_restart:
+			_stamina_locked = false
+	var top := max_speed * (boost_speed_mult if boosting else 1.0)
+	if boosting:
+		speed = minf(speed + acceleration * boost_accel_mult * delta, top)
+	elif speed > top:
+		# Still above normal top speed after a boost: ease back down.
+		speed = maxf(top, speed - coast_drag * delta)
+	elif go:
+		speed = minf(speed + acceleration * delta, top)
 	else:
 		speed -= coast_drag * delta # coast to a stop
 	if stop_:
 		speed -= brake_force * delta
-	speed = clampf(speed, min_speed, max_speed)
+	speed = maxf(speed, min_speed)
+	var frac := stamina / stamina_max
+	if absf(frac - _last_stamina_report) > 0.005 or boosting != _last_boosting:
+		_last_stamina_report = frac
+		_last_boosting = boosting
+		stamina_changed.emit(frac, boosting)
 	rotation = heading
 	gravity_grace -= delta
 	drift *= exp(-drift_damping * delta)
@@ -333,6 +378,8 @@ func _update_effects(delta: float) -> void:
 
 	_flame_t += delta * 30.0
 	var throttle := inverse_lerp(min_speed, max_speed, speed)
+	if boosting:
+		throttle *= 1.5 # long boost flame
 	flame.scale = Vector2(0.8 + 0.4 * throttle, (0.6 + 1.2 * throttle) * (1.0 + 0.2 * sin(_flame_t))) * size_mult
 	if _invuln > 0.0:
 		_invuln -= delta

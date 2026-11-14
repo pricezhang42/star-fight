@@ -77,6 +77,7 @@ func _ready() -> void:
 		var id: int = p.player_id
 		p.lives_changed.connect(func(n: int): hud.set_lives(id, n))
 		p.dash_changed.connect(func(f: float): hud.set_dash(id, f))
+		p.stamina_changed.connect(func(f: float, b: bool): hud.set_stamina(id, f, b))
 		p.laser_changed.connect(func(f: float): hud.set_laser(id, f))
 		p.items_changed.connect(func(it: Array, sel: int): hud.set_items(id, it, sel))
 		p.loadout_changed.connect(func(w: int, wl: float, sh: float): hud.set_loadout(id, w, wl, sh))

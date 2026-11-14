@@ -261,6 +261,14 @@ func place_pickups(parent: Node, from_x: float, to_x: float, count: int) -> void
 				break
 		if near_hole:
 			continue
+		# Keep capsules apart so their labels don't overlap.
+		var crowded := false
+		for other in get_tree().get_nodes_in_group("pickups"):
+			if other.global_position.distance_to(global_pos) < 400.0:
+				crowded = true
+				break
+		if crowded:
+			continue
 		var pickup := Area2D.new()
 		pickup.set_script(PICKUP)
 		if _rng.randf() < PowerUps.WEAPON_CHANCE:

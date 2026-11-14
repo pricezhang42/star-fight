@@ -57,7 +57,12 @@ Both players use the same controls, each on their own computer:
   costs the other ship a life if it hits. One shot also destroys the other
   ship's missile or rocket, and any NPC ship (red ships, chasers); red
   satellites take two.
-- **Shift:** dash forward (about +370 px over half a second). For the first
+- **Shift (hold):** boost. Top speed goes from 340 to about 545 and the ship
+  speeds up faster, even without W. It uses stamina (the bar under each
+  ship's HUD): a full bar lasts about 3 s. Stamina refills by itself (about
+  5.5 s from empty) once you let go; if it runs dry you have to wait for a
+  quarter of the bar before boosting again.
+- **Space:** dash forward (about +370 px over half a second). For the first
   0.4 s the ship flies straight through rocks, planets and satellites (it
   keeps passing through until it is clear, so it never gets stuck), and it
   can't lose a life, so it can also punch through a laser bolt or comet.
@@ -85,7 +90,7 @@ are full the capsule stays where it is.
 
 - **Right click:** use the selected power-up (aimed ones go where the turret
   points / toward the mouse).
-- **Space:** switch between your two power-ups.
+- **Tab:** switch between your two power-ups.
 
 | Power-up | Effect |
 | --- | --- |

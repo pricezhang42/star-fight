@@ -17,6 +17,7 @@ var _body: Sprite2D
 
 
 func _ready() -> void:
+	add_to_group("pickups")
 	collision_layer = 0
 	collision_mask = 2 # ships
 	var shape := CircleShape2D.new()

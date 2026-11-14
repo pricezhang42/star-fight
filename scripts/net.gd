@@ -27,6 +27,7 @@ var menu_message := ""
 const BTN_THRUST := 1
 const BTN_BRAKE := 2
 const BTN_FIRE := 4
+const BTN_BOOST := 8
 var remote_turn := 0.0 ## -1..1 (A/D)
 var remote_buttons := 0 ## BTN_* bits that are held down
 var remote_mouse := Vector2.ZERO ## where the red ship is aiming (world position)

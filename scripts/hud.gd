@@ -13,6 +13,7 @@ const LIFE_ICONS := {
 @onready var _dash_labels := {1: $P1Dash, 2: $P2Dash}
 @onready var _laser_labels := {1: $P1Laser, 2: $P2Laser}
 @onready var _item_boxes := {1: $P1Items, 2: $P2Items}
+@onready var _stamina_bars := {1: $P1Stamina, 2: $P2Stamina}
 
 ## Which ship this screen belongs to: 1 on the host (and solo), 2 on the
 ## joining computer. Decides whose bottom-edge warning is shown.
@@ -21,6 +22,8 @@ var _lives := {1: -1, 2: -1}
 var _dash := {1: -1.0, 2: -1.0}
 var _laser := {1: -1.0, 2: -1.0}
 var _items := {1: [], 2: []}
+var _stamina := {1: 1.0, 2: 1.0}
+var _boosting := {1: false, 2: false}
 var _weapon := {1: 0, 2: 0}
 var _weapon_left := {1: 0.0, 2: 0.0}
 var _shield := {1: 0.0, 2: 0.0}
@@ -39,7 +42,7 @@ func _ready() -> void:
 ## Solo practice: hide the red ship's side of the HUD.
 func set_solo(solo: bool) -> void:
 	_solo = solo
-	for node in [$P2Label, $P2Lives, $P2Dash, $P2Laser, $P2Items]:
+	for node in [$P2Label, $P2Lives, $P2Dash, $P2Laser, $P2Items, $P2Stamina]:
 		node.visible = not solo
 
 
@@ -61,7 +64,7 @@ func set_dash(id: int, ready_fraction: float) -> void:
 	_dash[id] = ready_fraction
 	var label: Label = _dash_labels[id]
 	if ready_fraction >= 1.0:
-		label.text = "DASH READY - SHIFT"
+		label.text = "DASH READY - SPACE"
 		label.modulate = Color(0.6, 0.9, 1.0)
 	else:
 		label.text = "DASH %d%%" % int(ready_fraction * 100.0)
@@ -122,6 +125,20 @@ func set_items(id: int, items: Array, selected: int) -> void:
 		box.add_child(slot)
 
 
+## Boost stamina bar, 0..1 (brighter while boosting).
+func set_stamina(id: int, fraction: float, boosting: bool) -> void:
+	_stamina[id] = fraction
+	_boosting[id] = boosting
+	var bar: Control = _stamina_bars[id]
+	var fill: ColorRect = bar.get_node("Fill")
+	var inner := bar.size.x - 4.0
+	fill.size.x = inner * clampf(fraction, 0.0, 1.0)
+	if id == 2:
+		fill.position.x = 2.0 + inner - fill.size.x # red bar drains toward the right edge
+	var base := Color(0.45, 0.85, 1.0) if id == 1 else Color(1.0, 0.6, 0.5)
+	fill.color = base.lightened(0.35) if boosting else (base if fraction > 0.25 else Color(1.0, 0.35, 0.3))
+
+
 func set_scroll(mult: float) -> void:
 	scroll_label.text = "SCROLL x%.1f" % mult
 
@@ -154,6 +171,8 @@ func get_net_state() -> Dictionary:
 		"dash": [_dash[1], _dash[2]],
 		"laser": [_laser[1], _laser[2]],
 		"items": [_items[1], _items[2]],
+		"stamina": [_stamina[1], _stamina[2]],
+		"boosting": [_boosting[1], _boosting[2]],
 		"weapon": [_weapon[1], _weapon[2]],
 		"weapon_left": [_weapon_left[1], _weapon_left[2]],
 		"shield": [_shield[1], _shield[2]],
@@ -180,6 +199,7 @@ func apply_net_state(st: Dictionary) -> void:
 			set_laser(id, maxf(st.laser[i], 0.0))
 		elif st.laser[i] != _laser[id]:
 			set_laser(id, st.laser[i])
+		set_stamina(id, st.stamina[i], st.boosting[i])
 		if st.items[i] != _items[id] or st.sel[i] != _selected[id]:
 			set_items(id, st.items[i], st.sel[i])
 		set_danger(id, st.danger[i])
