@@ -10,8 +10,12 @@ extends Node
 enum Mode { LOCAL, HOST, CLIENT }
 
 const PORT := 7777
-const DISCOVERY_PORT := 7778
+## UDP port for finding games on the LAN (`-- --discovery-port=N` overrides it,
+## e.g. to test while another copy of the game is open on this machine).
+var DISCOVERY_PORT := 7778
 const DISCOVERY_TAG := "STARFIGHTS"
+## A joiner asking "is anyone hosting?"; a host answers with DISCOVERY_TAG.
+const PROBE_TAG := "STARFIGHTS?"
 const MENU_SCENE := "res://scenes/menu.tscn"
 const GAME_SCENE := "res://scenes/main.tscn"
 const CLIENT_SCENE := "res://scenes/client_view.tscn"
@@ -37,6 +41,10 @@ var _remote_events := {}
 var _broadcaster: PacketPeerUDP = null
 var _broadcast_timer := 0.0
 var _listener: PacketPeerUDP = null
+## Joiner: sends "anyone hosting?" probes and hears the answers.
+var _prober: PacketPeerUDP = null
+var _probe_timer := 0.0
+var _targets_cache: Array = []
 var hosts_found: Array = []
 
 # --- host: what the mirror needs ------------------------------------------
@@ -55,6 +63,8 @@ func _ready() -> void:
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--host":
 			call_deferred("host")
+		elif arg.begins_with("--discovery-port="):
+			DISCOVERY_PORT = int(arg.trim_prefix("--discovery-port="))
 		elif arg.begins_with("--join="):
 			call_deferred("join", arg.trim_prefix("--join="))
 
@@ -83,7 +93,10 @@ func host() -> void:
 	mode = Mode.HOST
 	_broadcaster = PacketPeerUDP.new()
 	_broadcaster.set_broadcast_enabled(true)
-	_broadcaster.bind(0)
+	# Listen on the discovery port so joiners' probes reach us (if a joiner on
+	# this same machine already holds the port, just announce instead).
+	if _broadcaster.bind(DISCOVERY_PORT) != OK:
+		_broadcaster.bind(0)
 	_set_status("Hosting. Waiting for the other player to join...\nThis computer: %s" % ", ".join(lan_addresses()))
 
 
@@ -161,19 +174,80 @@ func lan_addresses() -> Array:
 # Finding hosts on the LAN
 # ===========================================================================
 
+## Joiner side. Two ways of finding a host, so it works on more networks:
+## 1. listen for the host's once-a-second announcements on DISCOVERY_PORT;
+## 2. ask: send a probe to every broadcast address and to every machine in our
+##    own /24 block, and collect the hosts that answer. Answers to our own
+##    probes also get through firewalls that drop unsolicited broadcasts.
 func start_listening(on: bool) -> void:
 	if not on:
 		if _listener:
 			_listener.close()
 		_listener = null
+		if _prober:
+			_prober.close()
+		_prober = null
 		return
-	if _listener:
+	if _listener or _prober:
 		return
 	_listener = PacketPeerUDP.new()
 	if _listener.bind(DISCOVERY_PORT) != OK:
-		_listener = null
+		_listener = null # e.g. a host on this same machine has it; probing still works
+	_prober = PacketPeerUDP.new()
+	_prober.set_broadcast_enabled(true)
+	_prober.bind(0)
+	_probe_timer = 0.0
 	hosts_found.clear()
 	hosts_found_changed.emit(hosts_found)
+
+
+## Where to send announcements and probes: the real broadcast address of each
+## network this computer is on (read from the system, since home networks are
+## usually x.y.z.255 but office/school ones often aren't), the general
+## broadcast address, x.y.z.255 guesses, and this machine itself.
+func broadcast_targets() -> Array:
+	if not _targets_cache.is_empty():
+		return _targets_cache
+	var out := ["255.255.255.255", "127.0.0.1"]
+	var text := ""
+	var lines := []
+	if OS.get_name() == "Windows":
+		if OS.execute("ipconfig", [], lines) == 0:
+			text = "\n".join(lines)
+	else:
+		if OS.execute("ifconfig", [], lines) == 0:
+			text = "\n".join(lines)
+	# macOS / Linux ifconfig: "inet 10.1.2.3 netmask 0xffffc000 broadcast 10.1.63.255"
+	var rx := RegEx.create_from_string("broadcast (\\d+\\.\\d+\\.\\d+\\.\\d+)")
+	for m in rx.search_all(text):
+		out.append(m.get_string(1))
+	# Windows ipconfig: work it out from the address and subnet mask.
+	var ip_rx := RegEx.create_from_string("IPv4[^:]*:\\s*(\\d+\\.\\d+\\.\\d+\\.\\d+)")
+	var mask_rx := RegEx.create_from_string("Subnet Mask[^:]*:\\s*(\\d+\\.\\d+\\.\\d+\\.\\d+)")
+	var ips := ip_rx.search_all(text)
+	var masks := mask_rx.search_all(text)
+	for i in mini(ips.size(), masks.size()):
+		var a := ips[i].get_string(1).split(".")
+		var m2 := masks[i].get_string(1).split(".")
+		var parts := []
+		for k in 4:
+			parts.append(str((int(a[k]) | (~int(m2[k]) & 255))))
+		out.append(".".join(parts))
+	for a in lan_addresses():
+		var p: PackedStringArray = a.split(".")
+		out.append("%s.%s.%s.255" % [p[0], p[1], p[2]])
+	var unique := []
+	for t in out:
+		if not unique.has(t):
+			unique.append(t)
+	_targets_cache = unique
+	return unique
+
+
+func _add_host(ip: String) -> void:
+	if ip != "" and not hosts_found.has(ip):
+		hosts_found.append(ip)
+		hosts_found_changed.emit(hosts_found)
 
 
 func _process(delta: float) -> void:
@@ -182,23 +256,46 @@ func _process(delta: float) -> void:
 		_broadcast_timer -= delta
 		if _broadcast_timer <= 0.0:
 			_broadcast_timer = 1.0
-			# Each local network's broadcast address (x.y.z.255), the general
-			# broadcast address, and this machine itself (two windows, one Mac).
-			var targets := ["255.255.255.255", "127.0.0.1"]
-			for a in lan_addresses():
-				var parts: PackedStringArray = a.split(".")
-				targets.append("%s.%s.%s.255" % [parts[0], parts[1], parts[2]])
-			for dest in targets:
+			for dest in broadcast_targets():
 				_broadcaster.set_dest_address(dest, DISCOVERY_PORT)
 				_broadcaster.put_packet(DISCOVERY_TAG.to_utf8_buffer())
-	# Joiner: collect hosts we hear.
+		# Answer joiners' probes directly.
+		while _broadcaster.get_available_packet_count() > 0:
+			var data := _broadcaster.get_packet().get_string_from_utf8()
+			var ip := _broadcaster.get_packet_ip()
+			var port := _broadcaster.get_packet_port()
+			if data == PROBE_TAG and ip != "":
+				_broadcaster.set_dest_address(ip, port)
+				_broadcaster.put_packet(DISCOVERY_TAG.to_utf8_buffer())
+	# Joiner: collect hosts we hear announcing.
 	if _listener:
 		while _listener.get_available_packet_count() > 0:
 			var data := _listener.get_packet().get_string_from_utf8()
 			var ip := _listener.get_packet_ip()
-			if data == DISCOVERY_TAG and ip != "" and not hosts_found.has(ip):
-				hosts_found.append(ip)
-				hosts_found_changed.emit(hosts_found)
+			if data == DISCOVERY_TAG:
+				_add_host(ip)
+	# Joiner: ask "anyone hosting?" every 1.5 s, and collect the answers.
+	if _prober:
+		_probe_timer -= delta
+		if _probe_timer <= 0.0:
+			_probe_timer = 1.5
+			var probe := PROBE_TAG.to_utf8_buffer()
+			var dests := broadcast_targets().duplicate()
+			var mine := lan_addresses()
+			for a in mine:
+				var p: PackedStringArray = a.split(".")
+				for last in range(1, 255):
+					var ip := "%s.%s.%s.%d" % [p[0], p[1], p[2], last]
+					if ip != a:
+						dests.append(ip)
+			for dest in dests:
+				_prober.set_dest_address(dest, DISCOVERY_PORT)
+				_prober.put_packet(probe)
+		while _prober.get_available_packet_count() > 0:
+			var data := _prober.get_packet().get_string_from_utf8()
+			var ip := _prober.get_packet_ip()
+			if data == DISCOVERY_TAG:
+				_add_host(ip)
 	# Host: stream the game to the other computer.
 	if is_host():
 		var scene := get_tree().current_scene
