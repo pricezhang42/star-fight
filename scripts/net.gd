@@ -10,6 +10,13 @@ extends Node
 enum Mode { LOCAL, HOST, CLIENT }
 
 const PORT := 7777
+## Bump this whenever the network messages change. Both computers must match;
+## if they don't, they're told to update instead of freezing.
+var NET_PROTOCOL := 5
+## The world picture is sent this many times a second, split into small
+## packets that each fit in one network packet (no fragmenting).
+const WORLD_RATE := 30.0
+const SLICE_BYTES := 1000
 ## UDP port for finding games on the LAN (`-- --discovery-port=N` overrides it,
 ## e.g. to test while another copy of the game is open on this machine).
 var DISCOVERY_PORT := 7778
@@ -50,6 +57,11 @@ var hosts_found: Array = []
 # --- host: what the mirror needs ------------------------------------------
 var _mirror_sender: RefCounted = null
 var _hud_timer := 0.0
+var _world_timer := 0.0
+var _world_frame := 0
+## Joiner: pieces of world frames being reassembled.
+var _frames := {}
+var _last_applied := -1
 
 
 func _ready() -> void:
@@ -59,10 +71,13 @@ func _ready() -> void:
 	multiplayer.connected_to_server.connect(_on_connected)
 	multiplayer.connection_failed.connect(_on_connection_failed)
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
+	(multiplayer as SceneMultiplayer).peer_packet.connect(_on_peer_packet)
 	# Command line shortcuts, handy for testing two windows on one machine.
 	for arg in OS.get_cmdline_user_args():
 		if arg == "--host":
 			call_deferred("host")
+		elif arg.begins_with("--net-protocol="): # testing the version check
+			NET_PROTOCOL = int(arg.trim_prefix("--net-protocol="))
 		elif arg.begins_with("--discovery-port="):
 			DISCOVERY_PORT = int(arg.trim_prefix("--discovery-port="))
 		elif arg.begins_with("--join="):
@@ -129,8 +144,9 @@ func leave(to_menu := true, message := "") -> void:
 		get_tree().change_scene_to_file(MENU_SCENE)
 
 
-func _on_peer_connected(_id: int) -> void:
+func _on_peer_connected(id: int) -> void:
 	if mode == Mode.HOST:
+		_send_version(id)
 		_broadcaster = null
 		get_tree().change_scene_to_file(GAME_SCENE)
 
@@ -142,6 +158,9 @@ func _on_peer_disconnected(_id: int) -> void:
 
 func _on_connected() -> void:
 	start_listening(false)
+	_send_version(1)
+	_frames.clear()
+	_last_applied = -1
 	get_tree().change_scene_to_file(CLIENT_SCENE)
 
 
@@ -151,6 +170,18 @@ func _on_connection_failed() -> void:
 
 func _on_server_disconnected() -> void:
 	leave(true, "The host left the game.")
+
+
+## Version check, sent as raw bytes so it works even if the two computers'
+## scripts differ (when normal messages would silently fail).
+func _send_version(to_peer: int) -> void:
+	(multiplayer as SceneMultiplayer).send_bytes(("SFV:%d" % NET_PROTOCOL).to_utf8_buffer(), to_peer, MultiplayerPeer.TRANSFER_MODE_RELIABLE)
+
+
+func _on_peer_packet(_id: int, packet: PackedByteArray) -> void:
+	var text := packet.get_string_from_utf8()
+	if text.begins_with("SFV:") and int(text.trim_prefix("SFV:")) != NET_PROTOCOL:
+		call_deferred("leave", true, "The other computer is running a different version of the game.\nUpdate both to the same version (pull the latest two-ships) and try again.")
 
 
 func _set_status(text: String) -> void:
@@ -302,10 +333,13 @@ func _process(delta: float) -> void:
 		if scene and scene.has_method("is_game_scene"):
 			if _mirror_sender == null:
 				_mirror_sender = NetMirror.Sender.new()
-			_send_world(scene)
+			_world_timer -= delta
+			if _world_timer <= 0.0:
+				_world_timer = 1.0 / WORLD_RATE
+				_send_world(scene)
 			_hud_timer -= delta
 			if _hud_timer <= 0.0:
-				_hud_timer = 0.05
+				_hud_timer = 1.0 / 15.0
 				client_hud.rpc_id(_client_id(), scene.get_node("HUD").get_net_state())
 
 
@@ -325,24 +359,61 @@ func _send_world(scene: Node) -> void:
 	var new_textures: Array = _mirror_sender.take_new_textures()
 	if not new_textures.is_empty():
 		client_textures.rpc_id(_client_id(), new_textures)
-	client_world.rpc_id(_client_id(), packet)
+	# Compress, then split into slices small enough for one network packet
+	# each. A big packet gets cut into many fragments by the network, and
+	# over Wi-Fi losing any one of them loses the whole picture.
+	var comp := packet.compress(FileAccess.COMPRESSION_ZSTD)
+	_world_frame += 1
+	var count := ceili(float(comp.size()) / SLICE_BYTES)
+	for i in count:
+		var b := StreamPeerBuffer.new()
+		b.put_u32(_world_frame)
+		b.put_u8(i)
+		b.put_u8(count)
+		b.put_u32(packet.size())
+		b.put_data(comp.slice(i * SLICE_BYTES, mini((i + 1) * SLICE_BYTES, comp.size())))
+		client_world_part.rpc_id(_client_id(), b.data_array)
 
 
-@rpc("authority", "call_remote", "reliable")
+@rpc("authority", "call_remote", "reliable", 2)
 func client_textures(entries: Array) -> void:
 	var view := get_tree().current_scene
 	if view and view.has_method("add_textures"):
 		view.add_textures(entries)
 
 
-@rpc("authority", "call_remote", "unreliable_ordered")
-func client_world(packet: PackedByteArray) -> void:
+## One slice of a world frame (unreliable, its own channel). When all slices
+## of a frame newer than the last one shown have arrived, show it.
+@rpc("authority", "call_remote", "unreliable", 1)
+func client_world_part(part: PackedByteArray) -> void:
+	var b := StreamPeerBuffer.new()
+	b.data_array = part
+	var frame := b.get_u32()
+	var idx := b.get_u8()
+	var count := b.get_u8()
+	var raw_size := b.get_u32()
+	if frame <= _last_applied:
+		return # older than what's already on screen
+	var data: PackedByteArray = b.get_data(part.size() - 10)[1]
+	if not _frames.has(frame):
+		_frames[frame] = {"count": count, "raw": raw_size, "pieces": {}}
+	var f: Dictionary = _frames[frame]
+	f.pieces[idx] = data
+	if f.pieces.size() < f.count:
+		return
+	var comp := PackedByteArray()
+	for i in f.count:
+		comp.append_array(f.pieces[i])
+	_last_applied = frame
+	for k in _frames.keys():
+		if k <= frame:
+			_frames.erase(k)
 	var view := get_tree().current_scene
 	if view and view.has_method("apply_world"):
-		view.apply_world(packet)
+		view.apply_world(comp.decompress(f.raw, FileAccess.COMPRESSION_ZSTD))
 
 
-@rpc("authority", "call_remote", "unreliable_ordered")
+@rpc("authority", "call_remote", "reliable", 2)
 func client_hud(state: Dictionary) -> void:
 	var view := get_tree().current_scene
 	if view and view.has_node("HUD"):
