@@ -54,7 +54,9 @@ Both players use the same controls, each on their own computer:
   (shown under each ship's dash). The shot works like the comets Darth used
   to throw: it flies fast, bounces off asteroids and knocks them away, flies
   over planets, satellites, walls and comets, is bent by black holes, and
-  costs the other ship a life if it hits.
+  costs the other ship a life if it hits. One shot also destroys the other
+  ship's missile or rocket, and any NPC ship (red ships, chasers); red
+  satellites take two.
 - **Shift:** dash forward (about +370 px over half a second). For the first
   0.4 s the ship flies straight through rocks, planets and satellites (it
   keeps passing through until it is clear, so it never gets stuck), and it
@@ -92,6 +94,17 @@ are full the capsule stays where it is.
 | Missile | A homing missile that chases the other ship (450 px/s, up to 7 s). It explodes on rocks, planets, satellites and walls; a hit costs a life. The other ship can shoot it down with its laser or dash through it. |
 | Chaos | The other ship's A and D are swapped for 3 s. |
 | Grenade | Thrown toward the mouse (up to 900 px); explodes where you clicked and pushes everything within about 450 px outward: ships, rocks, comets, missiles and shots. No damage. |
+| Shield | A bubble in your ship's colour absorbs the next hit of any kind (no life lost), then pops. Lasts up to 10 s. |
+
+**Weapon capsules** (red, tagged "WEAPON", about 1 in 4 capsules) don't use a
+slot: they change your basic laser the moment you fly through them, until you
+lose a life. Picking up another weapon replaces the current one. The laser line
+in the HUD shows the weapon in use (and any Shield time left).
+
+| Weapon | Effect |
+| --- | --- |
+| Rapid laser | The same shot, but it recharges in 2.5 s instead of 5 s. |
+| Rocket | Left click fires a slower rocket (450 px/s) instead. It explodes on anything solid, a ship or an NPC, or after about 1,200 px. The blast (about 220 px) costs any ship in it a life, **including your own**, destroys rocks, damages NPCs and pushes things outward. |
 
 ## Rules
 

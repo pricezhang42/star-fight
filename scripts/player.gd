@@ -22,6 +22,8 @@ signal dash_changed(ready_fraction: float)
 signal laser_changed(ready_fraction: float)
 ## The power-ups held (PowerUps.Kind values) and which one is selected.
 signal items_changed(items: Array, selected: int)
+## Weapon pickup in use (PowerUps.Weapon) and seconds of Shield left, for the HUD.
+signal loadout_changed(weapon: int, shield_left: float)
 
 ## 1 = blue ship (this computer), 2 = red ship.
 @export var player_id := 1
@@ -57,6 +59,10 @@ const BULLET := preload("res://scenes/bullet.tscn")
 const LASER_BEAM := preload("res://scripts/laser_beam.gd")
 const MISSILE := preload("res://scripts/homing_missile.gd")
 const GRENADE := preload("res://scripts/grenade.gd")
+const ROCKET := preload("res://scripts/rocket.gd")
+const BUBBLE_TEX := preload("res://assets/kenney_space_shooter_redux/effects/shield3.png")
+const POP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldDown.ogg")
+const SHIELD_SECONDS := 10.0
 const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 ## Power-up tuning.
 const SHRINK_SCALE := 0.6
@@ -92,6 +98,12 @@ var items: Array = []
 var selected := 0
 ## Seconds left at small size (Shrink power-up).
 var shrink_time := 0.0
+## Seconds left on the Shield power-up's bubble (it pops on the first hit).
+var shield_time := 0.0
+## Weapon pickup in use (PowerUps.Weapon); lasts until this ship loses a life.
+var weapon := 0
+var _bubble: Sprite2D
+var _last_loadout := ""
 var heading := 0.0
 var alive := true
 var _invuln := 0.0
@@ -211,15 +223,26 @@ func _physics_process(delta: float) -> void:
 	# Laser: one heavy shot along the turret, then a 5 s recharge.
 	_fire_cd = maxf(0.0, _fire_cd - delta)
 	if firing and _fire_cd <= 0.0:
-		_fire_cd = fire_cooldown
-		_shoot(Vector2.RIGHT.rotated(turret.global_rotation), bullet_speed)
+		var dir := Vector2.RIGHT.rotated(turret.global_rotation)
+		if weapon == PowerUps.Weapon.ROCKET:
+			_fire_cd = fire_cooldown
+			var r := Area2D.new()
+			r.set_script(ROCKET)
+			r.setup(global_position + dir * MUZZLE * size_mult, dir, self)
+			get_tree().current_scene.add_child(r)
+			Fx.sound(get_tree().current_scene, USE_SOUND, -4.0)
+		else:
+			# Rapid laser: same shot, half the recharge.
+			_fire_cd = fire_cooldown * (0.5 if weapon == PowerUps.Weapon.RAPID else 1.0)
+			_shoot(dir, bullet_speed)
 	# Power-ups: right click uses the selected one, Space switches.
 	if next_now and items.size() > 1:
 		selected = (selected + 1) % items.size()
 		items_changed.emit(items, selected)
 	if use_now and not items.is_empty():
 		_use_item(aim)
-	var laser_ready := 1.0 - _fire_cd / fire_cooldown
+	var full_cd := fire_cooldown * (0.5 if weapon == PowerUps.Weapon.RAPID else 1.0)
+	var laser_ready := 1.0 - _fire_cd / full_cd
 	if absf(laser_ready - _last_laser_report) > 0.01 or (laser_ready >= 1.0 and _last_laser_report < 1.0):
 		_last_laser_report = laser_ready
 		laser_changed.emit(laser_ready)
@@ -274,6 +297,8 @@ func _update_effects(delta: float) -> void:
 	giant_time = maxf(0.0, giant_time - delta)
 	slick_time = maxf(0.0, slick_time - delta)
 	shrink_time = maxf(0.0, shrink_time - delta)
+	shield_time = maxf(0.0, shield_time - delta)
+	_update_bubble()
 	var target := 1.0
 	if giant_time > 0.0:
 		target = GIANT_SCALE
@@ -319,6 +344,17 @@ func _update_effects(delta: float) -> void:
 func take_hit(from: Vector2 = Vector2.INF) -> void:
 	if not alive or _invuln > 0.0 or _dash_iframe > 0.0 or _phasing:
 		return
+	if shield_time > 0.0:
+		# The Shield bubble takes the hit instead and pops.
+		shield_time = 0.0
+		_invuln = 0.6 # a moment to get clear
+		if from != Vector2.INF:
+			var away_s := (global_position - from).normalized()
+			if away_s != Vector2.ZERO:
+				drift = drift.slide(away_s) + away_s * (knockback + speed)
+		Fx.flash(get_tree().current_scene, global_position, BUBBLE_TEX, 1.4, 0.3)
+		Fx.sound(get_tree().current_scene, POP_SOUND, 0.0)
+		return
 	if from != Vector2.INF:
 		# Knocked back away from what hit us; the nose stays pointing the same way.
 		var away := (global_position - from).normalized()
@@ -327,6 +363,7 @@ func take_hit(from: Vector2 = Vector2.INF) -> void:
 		drift = drift.slide(away) + away * (knockback + speed)
 	lives -= 1
 	lives_changed.emit(lives)
+	weapon = PowerUps.Weapon.NONE # weapon pickups last until you lose a life
 	Fx.sound(get_tree().current_scene, hit_sound.stream)
 	if lives <= 0:
 		_die()
@@ -449,6 +486,8 @@ func _use_item(aim: Vector2) -> void:
 			beam.shooter = self
 			beam.setup(global_position, aim_dir)
 			scene.add_child(beam)
+		PowerUps.Kind.SHIELD:
+			shield_time = SHIELD_SECONDS
 		PowerUps.Kind.SHRINK:
 			shrink_time = SHRINK_SECONDS
 			giant_time = 0.0
@@ -469,3 +508,30 @@ func _use_item(aim: Vector2) -> void:
 			g.setup(global_position + to.normalized() * MUZZLE, global_position + to)
 			scene.add_child(g)
 	Fx.sound(scene, USE_SOUND, -6.0)
+
+
+## Weapon pickup: applies straight away (no slot), until this ship loses a life.
+func set_weapon(w: int) -> bool:
+	weapon = w
+	_fire_cd = minf(_fire_cd, fire_cooldown * (0.5 if w == PowerUps.Weapon.RAPID else 1.0))
+	return true
+
+
+## Shield bubble around the ship, in the ship's colour, and the HUD readout.
+func _update_bubble() -> void:
+	if _bubble == null:
+		_bubble = Sprite2D.new()
+		_bubble.texture = BUBBLE_TEX
+		_bubble.z_index = 2
+		add_child(_bubble)
+	_bubble.visible = shield_time > 0.0
+	if _bubble.visible:
+		var c := Color(0.5, 0.8, 1.0) if player_id == 1 else Color(1.0, 0.55, 0.5)
+		var blink := shield_time > 2.0 or fmod(shield_time, 0.3) > 0.15
+		_bubble.modulate = Color(c, 0.75 if blink else 0.25)
+		_bubble.global_rotation = 0.0
+		_bubble.scale = Vector2.ONE * 0.75 * size_mult * (1.0 + 0.04 * sin(Time.get_ticks_msec() * 0.01))
+	var key := "%d:%d" % [weapon, ceili(shield_time)]
+	if key != _last_loadout:
+		_last_loadout = key
+		loadout_changed.emit(weapon, shield_time)

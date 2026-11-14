@@ -21,6 +21,8 @@ var _lives := {1: -1, 2: -1}
 var _dash := {1: -1.0, 2: -1.0}
 var _laser := {1: -1.0, 2: -1.0}
 var _items := {1: [], 2: []}
+var _weapon := {1: 0, 2: 0}
+var _shield := {1: 0.0, 2: 0.0}
 var _selected := {1: 0, 2: 0}
 var _danger := {1: 0.0, 2: 0.0}
 var _solo := false
@@ -69,12 +71,21 @@ func set_dash(id: int, ready_fraction: float) -> void:
 func set_laser(id: int, ready_fraction: float) -> void:
 	_laser[id] = ready_fraction
 	var label: Label = _laser_labels[id]
+	var wname: String = PowerUps.WEAPON_NAMES[_weapon[id]]
+	var extra := ("   SHIELD %ds" % ceili(_shield[id])) if _shield[id] > 0.0 else ""
 	if ready_fraction >= 1.0:
-		label.text = "LASER READY - CLICK"
-		label.modulate = Color(1.0, 0.9, 0.5)
+		label.text = wname + " READY" + extra
+		label.modulate = Color(1.0, 0.9, 0.5) if _weapon[id] == 0 else Color(1.0, 0.6, 0.3)
 	else:
-		label.text = "LASER %d%%" % int(ready_fraction * 100.0)
+		label.text = "%s %d%%%s" % [wname, int(ready_fraction * 100.0), extra]
 		label.modulate = Color(0.8, 0.75, 0.6, 0.7)
+
+
+## Weapon pickup in use and Shield time, shown on that ship's laser line.
+func set_loadout(id: int, weapon: int, shield_left: float) -> void:
+	_weapon[id] = weapon
+	_shield[id] = shield_left
+	set_laser(id, maxf(_laser[id], 0.0))
 
 
 ## That ship's power-up slots: icon + name, the selected one highlighted.
@@ -139,6 +150,8 @@ func get_net_state() -> Dictionary:
 		"dash": [_dash[1], _dash[2]],
 		"laser": [_laser[1], _laser[2]],
 		"items": [_items[1], _items[2]],
+		"weapon": [_weapon[1], _weapon[2]],
+		"shield": [_shield[1], _shield[2]],
 		"sel": [_selected[1], _selected[2]],
 		"danger": [_danger[1], _danger[2]],
 		"scroll": scroll_label.text,
@@ -155,7 +168,11 @@ func apply_net_state(st: Dictionary) -> void:
 		set_lives(id, st.lives[i])
 		if st.dash[i] != _dash[id]:
 			set_dash(id, st.dash[i])
-		if st.laser[i] != _laser[id]:
+		if st.weapon[i] != _weapon[id] or st.shield[i] != _shield[id]:
+			_weapon[id] = st.weapon[i]
+			_shield[id] = st.shield[i]
+			set_laser(id, maxf(st.laser[i], 0.0))
+		elif st.laser[i] != _laser[id]:
 			set_laser(id, st.laser[i])
 		if st.items[i] != _items[id] or st.sel[i] != _selected[id]:
 			set_items(id, st.items[i], st.sel[i])

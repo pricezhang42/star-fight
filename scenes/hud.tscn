@@ -60,9 +60,9 @@ label_settings = SubResource("ls")
 [node name="P1Laser" type="Label" parent="."]
 offset_left = 16.0
 offset_top = 80.0
-offset_right = 400.0
+offset_right = 640.0
 offset_bottom = 110.0
-text = "LASER READY - CLICK"
+text = "LASER READY"
 label_settings = SubResource("ls")
 
 [node name="P1Items" type="HBoxContainer" parent="."]
@@ -127,12 +127,12 @@ theme_override_constants/separation = 12
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -400.0
+offset_left = -640.0
 offset_top = 80.0
 offset_right = -16.0
 offset_bottom = 110.0
 grow_horizontal = 0
-text = "LASER READY - CLICK"
+text = "LASER READY"
 label_settings = SubResource("ls")
 horizontal_alignment = 2
 

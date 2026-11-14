@@ -263,7 +263,10 @@ func place_pickups(parent: Node, from_x: float, to_x: float, count: int) -> void
 			continue
 		var pickup := Area2D.new()
 		pickup.set_script(PICKUP)
-		pickup.kind = PowerUps.random_kind()
+		if _rng.randf() < PowerUps.WEAPON_CHANCE:
+			pickup.weapon = PowerUps.random_weapon()
+		else:
+			pickup.kind = PowerUps.random_kind()
 		pickup.position = parent.to_local(global_pos) if parent != self else local
 		parent.add_child(pickup)
 		placed += 1

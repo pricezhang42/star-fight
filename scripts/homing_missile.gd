@@ -30,7 +30,7 @@ func _ready() -> void:
 	collision_layer = 32 # so lasers can shoot it down
 	collision_mask = 1 | 2 # world and ships
 	var shape := CircleShape2D.new()
-	shape.radius = 14.0
+	shape.radius = 32.0 # generous, so one laser shot passing close takes it down
 	var cs := CollisionShape2D.new()
 	cs.shape = shape
 	add_child(cs)

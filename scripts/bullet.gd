@@ -16,6 +16,9 @@ const RED_HIT := preload("res://assets/kenney_space_shooter_redux/lasers/laserRe
 const PLAYER_MASK := 1 | 2 | 8 | 16
 const ALIEN_MASK := 1 | 2 | 16
 
+## Damage a heavy shot does to NPC ships (enough to destroy any of them).
+const NPC_DAMAGE := 4
+
 var direction := Vector2.RIGHT
 var speed := 900.0
 var from_player := true
@@ -49,7 +52,7 @@ func make_heavy() -> void:
 	heavy = true
 	life = 14.0
 	scale = Vector2.ONE * 1.8
-	collision_mask = 1 | 2 | 32 # rocks to bounce off, ships, and missiles
+	collision_mask = 1 | 2 | 8 | 32 # rocks/satellites, ships, NPC hitboxes, missiles
 
 
 func _ready() -> void:
@@ -94,7 +97,10 @@ func _on_body_entered(body: Node) -> void:
 	if heavy and not body.is_in_group("player"):
 		if body.is_in_group("rocks"):
 			_bounce_off_rock(body)
-		return # flies over planets, satellites and walls
+		elif body.has_method("take_damage") and body.get("hostile"):
+			body.take_damage(NPC_DAMAGE / 2) # red satellites take 2 shots
+			_impact()
+		return # flies over planets, harmless satellites and walls
 	if body.is_in_group("player"):
 		if body != shooter:
 			body.take_hit(global_position - direction * 40.0)
@@ -108,9 +114,13 @@ func _on_body_entered(body: Node) -> void:
 
 func _on_area_entered(area: Area2D) -> void:
 	if heavy:
-		# Shoots down the other ship's missiles; flies over comets.
+		# Shoots down the other ship's missiles and rockets, destroys NPC
+		# ships in one hit; flies over comets.
 		if area.is_in_group("missiles") and area.shooter != shooter:
 			area.explode()
+			_impact()
+		elif area.is_in_group("alien_hurtbox"):
+			area.get_parent().take_damage(NPC_DAMAGE)
 			_impact()
 		return
 	if area.is_in_group("alien_hurtbox"):
