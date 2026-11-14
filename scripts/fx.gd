@@ -16,13 +16,15 @@ static func flash(parent: Node, pos: Vector2, tex: Texture2D, size := 1.0, time 
 	tw.chain().tween_callback(s.queue_free)
 
 
-## Play a sound that outlives the node that triggered it.
-static func sound(parent: Node, stream: AudioStream, volume_db := 0.0) -> void:
+## Play a sound that outlives the node that triggered it. `pitch` above 1 plays
+## it higher and faster, below 1 lower and slower.
+static func sound(parent: Node, stream: AudioStream, volume_db := 0.0, pitch := 1.0) -> void:
 	var p := AudioStreamPlayer.new()
 	p.stream = stream
 	p.volume_db = volume_db
+	p.pitch_scale = pitch
 	parent.add_child(p)
 	p.finished.connect(p.queue_free)
 	p.play()
 	# In a LAN game the host also tells the other computer to play it.
-	Net.share_sound(stream, volume_db)
+	Net.share_sound(stream, volume_db, pitch)

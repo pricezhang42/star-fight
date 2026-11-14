@@ -1,7 +1,9 @@
 # Credits
 
-All art, sound effects and the font in this game come from open-licensed
-asset packs. No assets were drawn or generated for this project.
+All art, the font and all but one of the sound effects in this game come from
+open-licensed asset packs. The one exception is the ships' blaster sound
+(`assets/generated/blaster_1.wav` to `blaster_5.wav`), which is synthesized from scratch by
+`tools/make_blaster_sound.py`. No art was drawn or generated for this project.
 
 ## Space Shooter (Redux, plus fonts and sounds)
 

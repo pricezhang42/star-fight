@@ -252,18 +252,19 @@ func client_hud(state: Dictionary) -> void:
 
 
 ## Called by Fx.sound on the host: play the same sound on the other computer.
-func share_sound(stream: AudioStream, volume_db: float) -> void:
+func share_sound(stream: AudioStream, volume_db: float, pitch := 1.0) -> void:
 	if is_host() and stream and stream.resource_path != "":
-		client_sound.rpc_id(_client_id(), stream.resource_path, volume_db)
+		client_sound.rpc_id(_client_id(), stream.resource_path, volume_db, pitch)
 
 
 @rpc("authority", "call_remote", "unreliable")
-func client_sound(path: String, volume_db: float) -> void:
+func client_sound(path: String, volume_db: float, pitch: float) -> void:
 	var stream := load(path) as AudioStream
 	if stream:
 		var p := AudioStreamPlayer.new()
 		p.stream = stream
 		p.volume_db = volume_db
+		p.pitch_scale = clampf(pitch, 0.5, 2.0)
 		add_child(p)
 		p.finished.connect(p.queue_free)
 		p.play()

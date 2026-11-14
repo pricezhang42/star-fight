@@ -52,7 +52,14 @@ var remote := false
 @export var knockback := 600.0
 
 const BULLET := preload("res://scenes/bullet.tscn")
-const SHOOT_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser1.ogg")
+## Blaster sounds: one is picked at random for each shot.
+const SHOOT_SOUNDS := [
+	preload("res://assets/generated/blaster_1.wav"),
+	preload("res://assets/generated/blaster_2.wav"),
+	preload("res://assets/generated/blaster_3.wav"),
+	preload("res://assets/generated/blaster_4.wav"),
+	preload("res://assets/generated/blaster_5.wav"),
+]
 const DASH_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_twoTone.ogg")
 const RED_SHIP := preload("res://assets/kenney_space_shooter_redux/ships/playerShip1_red.png")
 
@@ -229,7 +236,8 @@ func _shoot(dir: Vector2, shot_speed: float) -> void:
 	b.setup(global_position + dir * MUZZLE * size_mult, dir, self, shot_speed)
 	b.make_heavy()
 	get_tree().current_scene.add_child(b)
-	Fx.sound(get_tree().current_scene, SHOOT_SOUND, -8.0)
+	# Each shot is a random variant, pitched and levelled a little differently.
+	Fx.sound(get_tree().current_scene, SHOOT_SOUNDS.pick_random(), -8.0 + randf_range(-1.5, 1.0), randf_range(0.88, 1.12))
 
 
 func _update_effects(delta: float) -> void:
