@@ -12,7 +12,7 @@ shader = ExtResource("4")
 [sub_resource type="CircleShape2D" id="hurt"]
 radius = 52.0
 
-[node name="AlienAstronaut" type="Node2D"]
+[node name="AlienAstronaut" type="Node2D" groups=["net_draw"]]
 z_index = 10
 script = ExtResource("1")
 

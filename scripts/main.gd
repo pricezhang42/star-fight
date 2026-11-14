@@ -180,7 +180,7 @@ func _process(delta: float) -> void:
 	var screen_bottom := -(_scroll_y + _view_height() / 2.0)
 	generator.update(screen_top + 3000.0, screen_bottom - 2500.0)
 
-	if _over and Input.is_action_just_pressed("restart"):
+	if _over and (Input.is_action_just_pressed("restart") or Net.take_event("restart")):
 		get_tree().reload_current_scene()
 
 
@@ -188,7 +188,7 @@ func _on_player_died() -> void:
 	if _over:
 		return
 	_over = true
-	lose_sound.play()
+	Fx.sound(self, lose_sound.stream)
 	var new_best := score > best
 	if new_best:
 		best = score
@@ -223,11 +223,9 @@ func _on_darth_shot() -> void:
 	tw.chain().tween_callback(label.queue_free)
 
 
-## F11 switches between fullscreen and a window.
-func _unhandled_input(event: InputEvent) -> void:
-	if event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_F11:
-		var full := DisplayServer.window_get_mode() >= DisplayServer.WINDOW_MODE_FULLSCREEN
-		DisplayServer.window_set_mode(DisplayServer.WINDOW_MODE_WINDOWED if full else DisplayServer.WINDOW_MODE_FULLSCREEN)
+## Marks this as the game scene (Net streams it to Darth's computer).
+func is_game_scene() -> bool:
+	return true
 
 
 func _load_best() -> int:

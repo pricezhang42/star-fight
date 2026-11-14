@@ -34,7 +34,13 @@ func _ready() -> void:
 	tw.tween_property($Hint, "modulate:a", 0.0, 1.5)
 
 
+var _lives := 0
+var _items: Array = []
+var _selected := 0
+
+
 func set_lives(n: int) -> void:
+	_lives = n
 	for c in lives_box.get_children():
 		c.queue_free()
 	for i in n:
@@ -100,6 +106,8 @@ func _update_p2() -> void:
 
 ## Darth's item slots: icon + name, the selected one highlighted.
 func set_items(items: Array, selected: int) -> void:
+	_items = items.duplicate()
+	_selected = selected
 	for c in items_box.get_children():
 		c.queue_free()
 	for i in items.size():
@@ -146,3 +154,37 @@ func set_dash(ready_fraction: float) -> void:
 	else:
 		dash_label.text = "DASH %d%%" % int(ready_fraction * 100.0)
 		dash_label.modulate = Color(0.6, 0.7, 0.8, 0.7)
+
+
+
+## Everything the HUD shows, for sending to the other computer in LAN play.
+func get_net_state() -> Dictionary:
+	return {
+		"lives": _lives,
+		"score": distance_label.text,
+		"p2": p2_label.text, "p2_mod": p2_label.modulate,
+		"luke": luke_status.text,
+		"dash": dash_label.text, "dash_mod": dash_label.modulate,
+		"items": _items, "sel": _selected,
+		"msg": message.text, "msg_on": message.visible,
+		"danger": $Danger.modulate.a,
+		"hint": $Hint.modulate.a,
+	}
+
+
+## Show what the host's HUD shows (on Darth's computer in LAN play).
+func apply_net_state(st: Dictionary) -> void:
+	if st.lives != _lives:
+		set_lives(st.lives)
+	distance_label.text = st.score
+	p2_label.text = st.p2
+	p2_label.modulate = st.p2_mod
+	luke_status.text = st.luke
+	dash_label.text = st.dash
+	dash_label.modulate = st.dash_mod
+	if st.items != _items or st.sel != _selected:
+		set_items(st.items, st.sel)
+	message.text = st.msg
+	message.visible = st.msg_on
+	$Danger.modulate.a = st.danger
+	$Hint.modulate.a = st.hint

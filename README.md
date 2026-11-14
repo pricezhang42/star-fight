@@ -12,6 +12,32 @@ camera fits the full width on screen. Your score is how high you climb
 (furthest point, 1 point per 10 pixels) plus 100 points every time Luke stuns Darth. The best score is saved separately from the side-scrolling version
 on `main`. The game starts in fullscreen.
 
+## Playing
+
+The game opens on a title screen:
+
+- **Local 2 players (one computer):** Luke and Darth share one keyboard and
+  mouse, as described below.
+- **Host LAN game (play as Luke):** this computer runs the game. The screen
+  shows its network address(es). The game starts as soon as Darth joins.
+- **Join as Darth:** type the host's address and press Join, or click a game
+  listed under "Games found on your network" (hosts are found automatically).
+
+In a LAN game the host computer runs everything; Darth's computer just shows
+the same picture (with black bars if the screens are a different shape) and
+sends Darth's arrow keys and mouse to the host. Both computers need the same
+version of the game, on the same network. The first time you host, macOS asks
+whether to allow incoming connections: allow it. Either player can press
+Enter to restart after game over. Esc goes back to the title screen (and
+leaves a LAN game; the other player is sent back to the title screen too).
+
+For testing on one machine you can also start the game from the command line
+with `-- --host` or `-- --join=127.0.0.1`.
+
+To make a double-clickable Mac app, install Godot's export templates
+(Editor > Manage Export Templates > Download and Install), then use
+Project > Export with the included "macOS" preset.
+
 ## Controls
 
 Two players share one keyboard and mouse: **Luke** flies the starship and

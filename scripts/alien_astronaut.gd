@@ -76,7 +76,12 @@ func _process(delta: float) -> void:
 	var rect := _track_rect()
 	if track_pos < 0.0:
 		track_pos = 0.5 * rect.size.y / _track_length(rect)
-	var input := Input.get_vector("p2_left", "p2_right", "p2_up", "p2_down")
+	# Darth's input: this keyboard/mouse, or Darth's computer in a LAN game.
+	var remote: bool = Net.mode == Net.Mode.HOST
+	var input: Vector2 = Net.remote_vector if remote else Input.get_vector("p2_left", "p2_right", "p2_up", "p2_down")
+	var pressed := {}
+	for action in ["p2_throw", "p2_next", "p2_prev", "p2_use"]:
+		pressed[action] = Net.take_event(action) if remote else Input.is_action_just_pressed(action)
 	if input.length() > 0.1 and not stunned:
 		_step_along_track(rect, input, speed * delta)
 	global_position = _point_on(rect, track_pos)
@@ -84,7 +89,7 @@ func _process(delta: float) -> void:
 	queue_redraw()
 
 	# Aim line toward the mouse, shown while the throw is ready.
-	var mouse := get_global_mouse_position()
+	var mouse: Vector2 = Net.remote_mouse if remote else get_global_mouse_position()
 	aim.visible = _cooldown <= 0.0 and not stunned
 	aim.points = PackedVector2Array([Vector2.ZERO, (mouse - global_position).limit_length(260.0)])
 
@@ -94,7 +99,7 @@ func _process(delta: float) -> void:
 		_cooldown = maxf(0.0, _cooldown - delta)
 	if was != _cooldown or _cooldown == 0.0:
 		cooldown_changed.emit(1.0 - _cooldown / throw_cooldown)
-	if not stunned and _cooldown <= 0.0 and Input.is_action_just_pressed("p2_throw"):
+	if not stunned and _cooldown <= 0.0 and pressed["p2_throw"]:
 		_throw(mouse)
 
 	# Item crates on the track: Darth has to run over them to collect.
@@ -103,13 +108,13 @@ func _process(delta: float) -> void:
 	if stunned:
 		return
 	if items.size() > 0:
-		if Input.is_action_just_pressed("p2_next"):
+		if pressed["p2_next"]:
 			selected = (selected + 1) % items.size()
 			_items_updated()
-		if Input.is_action_just_pressed("p2_prev"):
+		if pressed["p2_prev"]:
 			selected = (selected - 1 + items.size()) % items.size()
 			_items_updated()
-		if Input.is_action_just_pressed("p2_use"):
+		if pressed["p2_use"]:
 			use_item(mouse)
 
 
@@ -120,7 +125,7 @@ func _throw(target: Vector2) -> void:
 	comet.setup(global_position + dir * 50.0, dir * comet_speed, 1.6)
 	comet.thrower = self
 	get_tree().current_scene.add_child(comet)
-	throw_sound.play()
+	Fx.sound(get_tree().current_scene, throw_sound.stream, throw_sound.volume_db)
 
 
 func _update_crates(rect: Rect2, delta: float) -> void:
@@ -406,6 +411,17 @@ func _point_on(rect: Rect2, t: float) -> Vector2:
 		return rect.position + Vector2(d, h)
 	d -= w
 	return rect.position + Vector2(w, h - d)
+
+
+## Track outline for Darth's computer in LAN play (see NetMirror).
+func net_draw_commands() -> Array:
+	var r := _track_local
+	var c := Color(0.5, 1.0, 0.6, 0.25)
+	var tl := to_global(r.position)
+	var bl := to_global(Vector2(r.position.x, r.end.y))
+	var br := to_global(r.end)
+	var tr := to_global(Vector2(r.end.x, r.position.y))
+	return [["dashed", tl, bl, c, 6.0, 30.0], ["dashed", bl, br, c, 6.0, 30.0], ["dashed", br, tr, c, 6.0, 30.0]]
 
 
 func _draw() -> void:

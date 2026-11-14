@@ -29,7 +29,7 @@ point_count = 5
 script = ExtResource("main")
 world_size = Vector2(2600, 3400)
 
-[node name="Background" type="Sprite2D" parent="."]
+[node name="Background" type="Sprite2D" parent="." groups=["net_skip"]]
 texture_repeat = 2
 position = Vector2(-700, -3000)
 texture = ExtResource("bg")

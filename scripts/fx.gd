@@ -24,3 +24,5 @@ static func sound(parent: Node, stream: AudioStream, volume_db := 0.0) -> void:
 	parent.add_child(p)
 	p.finished.connect(p.queue_free)
 	p.play()
+	# In a LAN game the host also tells the other computer to play it.
+	Net.share_sound(stream, volume_db)

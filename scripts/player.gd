@@ -244,7 +244,7 @@ func take_hit(from: Vector2 = Vector2.INF) -> void:
 		drift = drift.slide(away) + away * (knockback + speed)
 	lives -= 1
 	lives_changed.emit(lives)
-	hit_sound.play()
+	Fx.sound(get_tree().current_scene, hit_sound.stream)
 	if lives <= 0:
 		_die()
 	else:

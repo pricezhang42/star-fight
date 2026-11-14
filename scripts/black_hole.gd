@@ -62,6 +62,12 @@ func _bend_projectiles(delta: float) -> void:
 		node.bend(to_center / d * strength * pow(falloff, 1.5) * 2.0 * delta)
 
 
+## Pull ring for Darth's computer in LAN play (see NetMirror).
+func net_draw_commands() -> Array:
+	var a := 0.12 + 0.06 * sin(_t * 2.5)
+	return [["arc", global_position, pull_radius, 0.0, TAU, Color(0.55, 0.75, 1.0, a), 3.0]]
+
+
 func _draw() -> void:
 	# Faint pulsing ring that marks how far the pull reaches.
 	var a := 0.12 + 0.06 * sin(_t * 2.5)

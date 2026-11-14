@@ -25,6 +25,8 @@ func _ready() -> void:
 	add_to_group("bendable")
 	# Point the fire trail backwards.
 	trail.direction = -velocity.normalized()
+	trail.add_to_group("net_particles")
+	trail.set_meta("net_kind", 1 if thrower else 0)
 	if thrower:
 		# Thrown comets also see the world layer, so they can bounce off rocks.
 		collision_mask |= 1

@@ -28,6 +28,7 @@ func setup(origin: Vector2, dir: Vector2) -> void:
 
 func _ready() -> void:
 	z_index = 40
+	add_to_group("net_draw")
 	_beam = Sprite2D.new()
 	_beam.texture = BEAM_TEX
 	_beam.rotation = PI / 2.0 # the sprite is vertical
@@ -81,6 +82,16 @@ func _carve_rocks() -> void:
 		var c := Geometry2D.get_closest_point_to_segment(p, a, b)
 		if p.distance_to(c) < beam_width * 0.5 + rock.radius:
 			rock.shatter()
+
+
+## Warning line for Darth's computer in LAN play (see NetMirror).
+func net_draw_commands() -> Array:
+	if _fired:
+		return []
+	var urgency := _t / warn_time
+	var blink := 0.5 + 0.5 * sin(_t * lerpf(14.0, 40.0, urgency))
+	var col := Color(1.0, 0.2, 0.2, lerpf(0.25, 0.9, blink))
+	return [["line", global_position, to_global(Vector2(length, 0)), col, lerpf(10.0, 26.0, urgency)]]
 
 
 func _draw() -> void:
