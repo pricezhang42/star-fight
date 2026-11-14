@@ -31,7 +31,8 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
   screen. Press along the edge you're on to move. At a corner, press toward
   the next edge, or keep pressing the way you were going, to go round it.
-- **Left click:** throw a green comet toward the mouse (recharges for 4 s).
+- **Left click:** throw a fast green comet toward the mouse (recharges for
+  4 s). Thrown comets bounce off asteroids and knock them away.
 - **Crates:** item crates appear at random spots on Darth's track every 6-8 s
   (at most 2 at once, each lasts 8 s and blinks before it vanishes). Each crate
   shows the icon and name of the item inside; run over it to collect that item.
