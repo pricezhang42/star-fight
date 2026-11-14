@@ -50,7 +50,11 @@ const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
 var hits := 0
 ## Position along the track, 0..1 (clockwise from the top-left corner).
-var track_pos := -1.0 ## set on the first frame to the middle of the left edge
+## Position along the U-shaped track, 0..1: from the top of the left edge,
+## down, along the bottom, and up the right edge. There is no top edge, so
+## the two top corners are dead ends. Set on the first frame to the middle of
+## the left edge.
+var track_pos := -1.0
 var _cooldown := 1.5
 var _track_local := Rect2()
 var items: Array[int] = []
@@ -68,9 +72,7 @@ func _process(delta: float) -> void:
 	_hit_grace = maxf(0.0, _hit_grace - delta)
 	var rect := _track_rect()
 	if track_pos < 0.0:
-		var w := rect.size.x
-		var h := rect.size.y
-		track_pos = (2.0 * w + 1.5 * h) / (2.0 * (w + h))
+		track_pos = 0.5 * rect.size.y / _track_length(rect)
 	var input := Input.get_vector("p2_left", "p2_right", "p2_up", "p2_down")
 	if input.length() > 0.1:
 		_step_along_track(rect, input, speed * delta)
@@ -115,14 +117,18 @@ func _throw(target: Vector2) -> void:
 
 
 func _update_crates(rect: Rect2, delta: float) -> void:
-	var perimeter := 2.0 * (rect.size.x + rect.size.y)
+	var perimeter := _track_length(rect)
 	# Spawn.
 	_item_timer -= delta
 	if _item_timer <= 0.0:
 		_item_timer = randf_range(crate_interval.x, crate_interval.y)
 		if _crates.size() < max_crates:
 			# Somewhere Darth has to travel to: at least 15% of the track away.
-			var t := wrapf(track_pos + randf_range(0.15, 0.85), 0.0, 1.0)
+			var t := randf()
+			for attempt in 10:
+				if absf(t - track_pos) >= 0.15:
+					break
+				t = randf()
 			# The crate's item is decided now and shown on it.
 			var item := randi() % Item.size()
 			var spr := Sprite2D.new()
@@ -159,8 +165,7 @@ func _update_crates(rect: Rect2, delta: float) -> void:
 		spr.global_position = _point_on(rect, c.t)
 		spr.rotation = sin(c.life * 3.0) * 0.15
 		spr.visible = c.life > 2.0 or fmod(c.life, 0.3) > 0.12
-		var gap := absf(c.t - track_pos)
-		gap = minf(gap, 1.0 - gap) * perimeter
+		var gap := absf(c.t - track_pos) * perimeter
 		if gap < pickup_distance and items.size() < max_items:
 			items.append(c.item)
 			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
@@ -251,15 +256,18 @@ func _track_rect() -> Rect2:
 
 ## Move along the track in whichever direction best matches the arrow keys.
 ## Pressing "along" an edge moves along it; at a corner, pressing toward the
-## next edge turns onto it.
+## next edge (or the way you were going) turns onto it. The two top ends of
+## the U are dead ends.
 func _step_along_track(rect: Rect2, input: Vector2, dist: float) -> void:
-	var perimeter := 2.0 * (rect.size.x + rect.size.y)
-	var step := dist / perimeter
+	var total := _track_length(rect)
+	var step := dist / total
 	var here := _point_on(rect, track_pos)
 	var best := 0.0
 	var best_score := 0.3 # needs to point at least roughly the right way
 	for dir in [1.0, -1.0]:
-		var ahead := _point_on(rect, wrapf(track_pos + dir * 0.002, 0.0, 1.0))
+		var ahead := _point_on(rect, clampf(track_pos + dir * 0.002, 0.0, 1.0))
+		if ahead.is_equal_approx(here):
+			continue # at a dead end
 		var score := (ahead - here).normalized().dot(input.normalized())
 		if score > best_score:
 			best_score = score
@@ -268,7 +276,12 @@ func _step_along_track(rect: Rect2, input: Vector2, dist: float) -> void:
 		# At a corner, pressing the way you were going (e.g. left at the
 		# bottom-left corner) carries on round the corner onto the next edge.
 		for dir in [1.0, -1.0]:
-			var behind := _point_on(rect, wrapf(track_pos - dir * 0.002, 0.0, 1.0))
+			var behind := _point_on(rect, clampf(track_pos - dir * 0.002, 0.0, 1.0))
+			if behind.is_equal_approx(here):
+				continue
+			var ahead := _point_on(rect, clampf(track_pos + dir * 0.002, 0.0, 1.0))
+			if ahead.is_equal_approx(here):
+				continue
 			var score := (here - behind).normalized().dot(input.normalized())
 			if score > best_score:
 				best_score = score
@@ -277,8 +290,7 @@ func _step_along_track(rect: Rect2, input: Vector2, dist: float) -> void:
 		return
 	# Stop exactly at a corner instead of overshooting onto the next edge,
 	# so the player can choose which way to turn there.
-	var w := rect.size.x
-	var corners := [0.0, w / perimeter, 0.5, 0.5 + w / perimeter, 1.0]
+	var corners := [rect.size.y / total, (rect.size.y + rect.size.x) / total]
 	var target := track_pos + best * step
 	if best > 0.0:
 		for k in corners:
@@ -291,31 +303,37 @@ func _step_along_track(rect: Rect2, input: Vector2, dist: float) -> void:
 			if track_pos > k + 0.00001 and target <= k:
 				target = k
 				break
-	track_pos = wrapf(target, 0.0, 1.0)
+	track_pos = clampf(target, 0.0, 1.0)
 
 
-## Point at fraction t (0..1) of the way round the rectangle, clockwise from
-## the top-left corner.
+## Length of the U: left edge + bottom + right edge.
+func _track_length(rect: Rect2) -> float:
+	return 2.0 * rect.size.y + rect.size.x
+
+
+## Point at fraction t (0..1) along the U: down the left edge from the top,
+## along the bottom, then up the right edge.
 func _point_on(rect: Rect2, t: float) -> Vector2:
 	var w := rect.size.x
 	var h := rect.size.y
-	var d := t * 2.0 * (w + h)
-	if d < w:
-		return rect.position + Vector2(d, 0)
-	d -= w
+	var d := clampf(t, 0.0, 1.0) * _track_length(rect)
 	if d < h:
-		return rect.position + Vector2(w, d)
+		return rect.position + Vector2(0, d)
 	d -= h
 	if d < w:
-		return rect.position + Vector2(w - d, h)
+		return rect.position + Vector2(d, h)
 	d -= w
-	return rect.position + Vector2(0, h - d)
+	return rect.position + Vector2(w, h - d)
 
 
 func _draw() -> void:
-	# Faint dashed outline of the track.
+	# Faint dashed outline of the track: left, bottom and right (no top).
 	var r := _track_local
 	var c := Color(0.5, 1.0, 0.6, 0.25)
-	var corners := [r.position, Vector2(r.end.x, r.position.y), r.end, Vector2(r.position.x, r.end.y)]
-	for i in 4:
-		draw_dashed_line(corners[i], corners[(i + 1) % 4], c, 6.0, 30.0)
+	var tl := r.position
+	var bl := Vector2(r.position.x, r.end.y)
+	var br := r.end
+	var tr := Vector2(r.end.x, r.position.y)
+	draw_dashed_line(tl, bl, c, 6.0, 30.0)
+	draw_dashed_line(bl, br, c, 6.0, 30.0)
+	draw_dashed_line(br, tr, c, 6.0, 30.0)
