@@ -188,16 +188,22 @@ func _set_status(text: String) -> void:
 	status_changed.emit(text)
 
 
-## This computer's LAN (IPv4, private range) addresses.
+## This computer's addresses the other player can join: private LAN ranges,
+## phone-hotspot and cable (169.254.x.x link-local) networks, and VPNs like
+## Tailscale / ZeroTier (100.64.0.0/10).
 func lan_addresses() -> Array:
 	var out := []
 	for a in IP.get_local_addresses():
-		if a.begins_with("192.168.") or a.begins_with("10."):
+		if not a.contains(".") or a.begins_with("127."):
+			continue
+		var parts := a.split(".")
+		var first := int(parts[0])
+		var second := int(parts[1])
+		if first == 10 or (first == 192 and second == 168) \
+				or (first == 172 and second >= 16 and second <= 31) \
+				or (first == 169 and second == 254) \
+				or (first == 100 and second >= 64 and second <= 127):
 			out.append(a)
-		elif a.begins_with("172."):
-			var second := int(a.split(".")[1])
-			if second >= 16 and second <= 31:
-				out.append(a)
 	return out
 
 

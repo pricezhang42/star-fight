@@ -33,6 +33,20 @@ allow it. Either player can press Enter to restart after the match ends. Esc
 goes back to the title screen (and leaves a LAN game; the other player is sent
 back to the title screen too).
 
+**If the network won't let the two computers talk** (common on school and
+office Wi-Fi, which often blocks devices from reaching each other):
+
+1. **Phone hotspot (easiest):** turn on a phone's personal hotspot and join it
+   with both computers, then host and join as usual. Only game traffic flows
+   between the two computers, so it uses almost no phone data.
+2. **Cable:** connect the two Macs with a Thunderbolt / USB-C cable (or an
+   Ethernet cable with adapters). macOS sets up a "Thunderbolt Bridge"
+   network automatically; the host screen shows a 169.254.x.x address to join.
+3. **Tailscale or ZeroTier (free VPN):** install it on both computers and sign
+   in to the same account; it connects them even through strict networks and
+   from different places. Join the host's 100.x.x.x address. (Check that your
+   school allows installing it.)
+
 For testing on one machine you can also start the game from the command line
 with `-- --host` or `-- --join=127.0.0.1`.
 
