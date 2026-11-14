@@ -1,7 +1,7 @@
 extends RigidBody2D
 ## One asteroid. Belt rocks start frozen in place; a dash or another
 ## knock sets them loose and they drift to a stop. "Moving" asteroids drift
-## and bounce forever. Lasers break them. Touching one costs Luke a life.
+## and bounce forever. Lasers break them. Touching one costs a ship a life.
 
 const DEBRIS := [
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_tiny1.png"),
@@ -27,8 +27,8 @@ var _material: PhysicsMaterial
 func _ready() -> void:
 	add_to_group("rocks")
 	gravity_scale = 0.0
-	collision_layer = 1 # counts as "world": Luke bounces off it
-	collision_mask = 1 | 2 # other rocks, planets, satellites, border; and Luke
+	collision_layer = 1 # counts as "world": ships bounce off it
+	collision_mask = 1 | 2 # other rocks, planets, satellites, border; and ships
 	mass = maxf(0.3, radius * radius / 900.0)
 	linear_damp_mode = RigidBody2D.DAMP_MODE_REPLACE
 	angular_damp_mode = RigidBody2D.DAMP_MODE_REPLACE
@@ -115,6 +115,6 @@ func shatter() -> void:
 
 
 func _on_body_entered(body: Node) -> void:
-	# A loose rock drifting into Luke hurts him too.
+	# A loose rock drifting into a ship hurts it too.
 	if body.is_in_group("player") and body.has_method("take_hit"):
 		body.take_hit(global_position)

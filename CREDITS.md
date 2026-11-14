@@ -15,14 +15,14 @@ Files used (in `assets/kenney_space_shooter_redux/`):
 
 | Use | File(s) |
 | --- | --- |
-| Player ship | `ships/playerShip1_blue.png` |
+| Player ships | `ships/playerShip1_blue.png`, `ships/playerShip1_red.png` |
 | Chasing alien | `enemies/enemyRed1.png` |
 | Asteroid belts and borders | `meteors/meteorGrey_big1-4.png`, `meteors/meteorBrown_big1-4.png`, `meteors/meteorBrown_med1.png`, `meteors/meteorGrey_med1.png` |
 | Engine flame, shield | `effects/fire00.png`, `effects/shield1.png` |
-| Life icons | `ui/playerLife1_blue.png` |
-| Darth's item icons | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
-| Darth's hunter ship (tinted purple) | `enemies/enemyBlack1.png` |
-| Darth's laser beam | `lasers/laserRed01.png` (stretched) |
+| Life icons | `ui/playerLife1_blue.png`, `ui/playerLife1_red.png` |
+| Powerup icons (not in use at the moment) | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
+| Hunter ship (tinted purple; not in use at the moment) | `enemies/enemyBlack1.png` |
+| Laser beam powerup (not in use at the moment) | `lasers/laserRed01.png` (stretched) |
 | Background | `backgrounds/darkPurple.png` |
 | Lasers and hit flashes | `lasers/laserBlue01.png`, `lasers/laserRed01.png`, `lasers/laserBlue08.png`, `lasers/laserRed08.png` |
 | Comets | `meteors/meteorBrown_med1.png` (plus `meteorBrown_med3.png`, `meteorGrey_med1.png`) with `effects/fire00.png` trail |
@@ -47,7 +47,6 @@ required by CC0 but is given here with thanks.
 | Passive satellite | `spaceStation_018.png` |
 | Enemy satellite (tinted red in game) | `spaceStation_019.png` |
 | Red enemy starship on the curved path | `spaceShips_004.png` |
-| Player 2 alien astronaut (tinted green in game) | `spaceAstronauts_013.png` |
 
 ## 20 CC0 planet sprites (Planets Set 1.0)
 

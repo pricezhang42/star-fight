@@ -1,63 +1,67 @@
 extends CanvasLayer
+## Lives and dash for both ships (blue on the left, red on the right), the
+## scroll speed, the bottom-edge warning glow and the big centre message.
 
-const LIFE_ICON := preload("res://assets/kenney_space_shooter_redux/ui/playerLife1_blue.png")
+const LIFE_ICONS := {
+	1: preload("res://assets/kenney_space_shooter_redux/ui/playerLife1_blue.png"),
+	2: preload("res://assets/kenney_space_shooter_redux/ui/playerLife1_red.png"),
+}
 
-@onready var lives_box: HBoxContainer = $Lives
-@onready var distance_label: Label = $Distance
 @onready var message: Label = $Message
-@onready var p2_label: Label = $P2
-@onready var items_box: HBoxContainer = $Items
-@onready var luke_status: Label = $LukeStatus
-@onready var dash_label: Label = $Dash
+@onready var scroll_label: Label = $Scroll
+@onready var _lives_boxes := {1: $P1Lives, 2: $P2Lives}
+@onready var _dash_labels := {1: $P1Dash, 2: $P2Dash}
 
-
-const ITEM_ICONS := [
-	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"), # chaos
-	preload("res://assets/kenney_space_shooter_redux/powerups/powerupBlue_star.png"), # flash bang
-	preload("res://assets/kenney_space_shooter_redux/enemies/enemyBlack1.png"), # hunter
-	preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed_bolt.png"), # laser
-	preload("res://assets/kenney_space_shooter_redux/powerups/powerupGreen_shield.png"), # giant
-	preload("res://assets/kenney_space_shooter_redux/powerups/pill_blue.png"), # slick
-]
-const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
-
-var _p2_hits := 0
-var _p2_ready := 0.0
-var _p2_stun := 0.0
+## Which ship this screen belongs to: 1 on the host (and solo), 2 on the
+## joining computer. Decides whose bottom-edge warning is shown.
+var local_player := 1
+var _lives := {1: -1, 2: -1}
+var _dash := {1: -1.0, 2: -1.0}
+var _danger := {1: 0.0, 2: 0.0}
+var _solo := false
 
 
 func _ready() -> void:
-	# The control help sits on top of Darth's bottom track, so fade it out
-	# after the first 15 seconds of a run.
+	# Fade the control help out after the first 15 seconds of a run.
 	var tw := $Hint.create_tween()
 	tw.tween_interval(15.0)
 	tw.tween_property($Hint, "modulate:a", 0.0, 1.5)
 
 
-var _lives := 0
-var _items: Array = []
-var _selected := 0
+## Solo practice: hide the red ship's side of the HUD.
+func set_solo(solo: bool) -> void:
+	_solo = solo
+	for node in [$P2Label, $P2Lives, $P2Dash]:
+		node.visible = not solo
 
 
-func set_lives(n: int) -> void:
-	_lives = n
-	for c in lives_box.get_children():
+func set_lives(id: int, n: int) -> void:
+	if _lives[id] == n:
+		return
+	_lives[id] = n
+	var box: HBoxContainer = _lives_boxes[id]
+	for c in box.get_children():
 		c.queue_free()
 	for i in n:
 		var icon := TextureRect.new()
-		icon.texture = LIFE_ICON
-		lives_box.add_child(icon)
+		icon.texture = LIFE_ICONS[id]
+		box.add_child(icon)
 
 
-var _scroll_mult := 1.0
-
-
-func set_score(score: int, best: int) -> void:
-	distance_label.text = "SCORE %d\nBEST %d\nSCROLL x%.1f" % [score, best, _scroll_mult]
+## 0..1 how recharged that ship's dash is (1 = ready).
+func set_dash(id: int, ready_fraction: float) -> void:
+	_dash[id] = ready_fraction
+	var label: Label = _dash_labels[id]
+	if ready_fraction >= 1.0:
+		label.text = "DASH READY - SHIFT"
+		label.modulate = Color(0.6, 0.9, 1.0)
+	else:
+		label.text = "DASH %d%%" % int(ready_fraction * 100.0)
+		label.modulate = Color(0.6, 0.7, 0.8, 0.7)
 
 
 func set_scroll(mult: float) -> void:
-	_scroll_mult = mult
+	scroll_label.text = "SCROLL x%.1f" % mult
 
 
 ## Big "GET READY" countdown in the middle; 0 hides it.
@@ -69,9 +73,11 @@ func set_countdown(n: int) -> void:
 		message.visible = false
 
 
-## Red glow at the bottom of the screen, 0..1, as Luke nears the bottom edge.
-func set_danger(amount: float) -> void:
-	$Danger.modulate.a = amount
+## Red glow at the bottom of the screen, 0..1, as that ship nears the bottom
+## edge. Each computer only shows the glow for its own ship.
+func set_danger(id: int, amount: float) -> void:
+	_danger[id] = amount
+	$Danger.modulate.a = _danger[local_player]
 
 
 func show_message(text: String) -> void:
@@ -79,112 +85,28 @@ func show_message(text: String) -> void:
 	message.visible = true
 
 
-func set_p2_hits(hits: int) -> void:
-	_p2_hits = hits
-	_update_p2()
-
-
-func set_p2_cooldown(ready_fraction: float) -> void:
-	_p2_ready = ready_fraction
-	_update_p2()
-
-
-func set_darth_stun(seconds_left: float) -> void:
-	_p2_stun = seconds_left
-	_update_p2()
-
-
-func _update_p2() -> void:
-	var state := "COMET READY - CLICK" if _p2_ready >= 1.0 else "RECHARGING %d%%" % int(_p2_ready * 100.0)
-	if _p2_stun > 0.0:
-		state = "STUNNED %.1fs" % _p2_stun
-	p2_label.text = "DARTH  HITS %d   %s" % [_p2_hits, state]
-	p2_label.modulate = Color(0.6, 1.0, 0.6) if _p2_ready >= 1.0 else Color(0.6, 0.8, 0.6, 0.7)
-	if _p2_stun > 0.0:
-		p2_label.modulate = Color(1.0, 0.9, 0.4)
-
-
-## Darth's item slots: icon + name, the selected one highlighted.
-func set_items(items: Array, selected: int) -> void:
-	_items = items.duplicate()
-	_selected = selected
-	for c in items_box.get_children():
-		c.queue_free()
-	for i in items.size():
-		var slot := VBoxContainer.new()
-		slot.alignment = BoxContainer.ALIGNMENT_CENTER
-		var icon := TextureRect.new()
-		icon.texture = ITEM_ICONS[items[i]]
-		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
-		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
-		icon.custom_minimum_size = Vector2(34, 34)
-		slot.add_child(icon)
-		var name_label := Label.new()
-		name_label.text = ITEM_NAMES[items[i]]
-		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
-		var ls := LabelSettings.new()
-		ls.font = p2_label.label_settings.font
-		ls.font_size = 13
-		ls.outline_size = 3
-		ls.outline_color = Color.BLACK
-		name_label.label_settings = ls
-		slot.add_child(name_label)
-		slot.modulate = Color(1, 1, 1, 1) if i == selected else Color(1, 1, 1, 0.45)
-		if i == selected:
-			icon.custom_minimum_size = Vector2(44, 44)
-		items_box.add_child(slot)
-
-
-## Warnings on Luke's side when Darth's effects are active.
-func set_luke_status(reversed: bool, giant: bool, slick: bool = false) -> void:
-	var parts := []
-	if reversed:
-		parts.append("CONTROLS REVERSED!")
-	if giant:
-		parts.append("GIANT SHIP!")
-	if slick:
-		parts.append("SLIPPERY STEERING!")
-	luke_status.text = "   ".join(parts)
-
-
-func set_dash(ready_fraction: float) -> void:
-	if ready_fraction >= 1.0:
-		dash_label.text = "DASH READY - SHIFT"
-		dash_label.modulate = Color(0.6, 0.9, 1.0)
-	else:
-		dash_label.text = "DASH %d%%" % int(ready_fraction * 100.0)
-		dash_label.modulate = Color(0.6, 0.7, 0.8, 0.7)
-
-
-
 ## Everything the HUD shows, for sending to the other computer in LAN play.
 func get_net_state() -> Dictionary:
 	return {
-		"lives": _lives,
-		"score": distance_label.text,
-		"p2": p2_label.text, "p2_mod": p2_label.modulate,
-		"luke": luke_status.text,
-		"dash": dash_label.text, "dash_mod": dash_label.modulate,
-		"items": _items, "sel": _selected,
+		"lives": [_lives[1], _lives[2]],
+		"dash": [_dash[1], _dash[2]],
+		"danger": [_danger[1], _danger[2]],
+		"scroll": scroll_label.text,
 		"msg": message.text, "msg_on": message.visible,
-		"danger": $Danger.modulate.a,
 		"hint": $Hint.modulate.a,
 	}
 
 
-## Show what the host's HUD shows (on Darth's computer in LAN play).
+## Show what the host's HUD shows (on the joining computer in LAN play).
 func apply_net_state(st: Dictionary) -> void:
-	if st.lives != _lives:
-		set_lives(st.lives)
-	distance_label.text = st.score
-	p2_label.text = st.p2
-	p2_label.modulate = st.p2_mod
-	luke_status.text = st.luke
-	dash_label.text = st.dash
-	dash_label.modulate = st.dash_mod
-	if st.items != _items or st.sel != _selected:
-		set_items(st.items, st.sel)
+	local_player = 2
+	for i in 2:
+		var id := i + 1
+		set_lives(id, st.lives[i])
+		if st.dash[i] != _dash[id]:
+			set_dash(id, st.dash[i])
+		set_danger(id, st.danger[i])
+	scroll_label.text = st.scroll
 	message.text = st.msg
 	message.visible = st.msg_on
-	$Danger.modulate.a = st.danger
 	$Hint.modulate.a = st.hint

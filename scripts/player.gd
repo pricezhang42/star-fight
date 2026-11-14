@@ -1,9 +1,13 @@
 extends CharacterBody2D
-## Luke's starship (player 1). A/D rotate the ship, W thrusts (let go and the
-## ship coasts to a stop in about a second), S brakes hard,
-## Space fires forward, B fires backward, Shift dashes.
+## A player's starship. Player 1 is blue, player 2 is red; otherwise they are
+## identical. A/D rotate the ship, W thrusts (let go and the ship coasts to a
+## stop in about a second), S brakes hard, Shift dashes. The blasters fire
+## toward the mouse while the left button is held.
 ## Momentum: speed builds up while W is held and bleeds off when it isn't.
-## Darth's items can reverse the controls (chaos) or make it bigger (giant).
+## Player 1 reads this computer's keyboard and mouse; in a LAN game player 2's
+## input arrives over the network (see Net).
+## The chaos / giant / slick effects are left over from the old powerups and
+## are not triggered by anything at the moment.
 
 signal lives_changed(lives: int)
 signal died
@@ -12,6 +16,10 @@ signal status_changed(reversed: bool, giant: bool, slick: bool)
 ## 0..1 how recharged the dash is (1 = ready).
 signal dash_changed(ready_fraction: float)
 
+## 1 = blue ship (this computer), 2 = red ship.
+@export var player_id := 1
+## True when this ship is flown from the other computer (LAN host only).
+var remote := false
 @export var speed := 0.0 ## current speed (starts parked)
 @export var min_speed := 0.0
 @export var max_speed := 340.0
@@ -41,6 +49,7 @@ signal dash_changed(ready_fraction: float)
 const BULLET := preload("res://scenes/bullet.tscn")
 const SHOOT_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser1.ogg")
 const DASH_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_twoTone.ogg")
+const RED_SHIP := preload("res://assets/kenney_space_shooter_redux/ships/playerShip1_red.png")
 
 var lives := 0
 ## Extra velocity from outside forces such as black holes.
@@ -48,7 +57,6 @@ var drift := Vector2.ZERO
 ## While above 0, black holes don't pull the ship (set after being flung out).
 var gravity_grace := 0.0
 var _fire_cd := 0.0
-var _fire_back_cd := 0.0
 var _dash_cd := 0.0
 var _dash_iframe := 0.0
 var _phase := 0.0
@@ -72,7 +80,8 @@ var _was_slick := false
 ## Current size multiplier (eases between 1 and giant_scale).
 var size_mult := 1.0
 const GIANT_SCALE := 2.0
-const BASE_RADIUS := 25.0
+const BASE_RADIUS := 32.0
+const MUZZLE := 46.0 ## how far from the ship's centre bolts appear
 var _base_sprite_scale := Vector2.ONE
 var _base_flame_pos := Vector2.ZERO
 var _was_reversed := false
@@ -90,6 +99,8 @@ func _ready() -> void:
 	heading = rotation
 	_move_dir = heading
 	shield.visible = false
+	if player_id == 2:
+		sprite.texture = RED_SHIP
 	_base_sprite_scale = sprite.scale
 	_base_flame_pos = flame.position
 	# Own copy of the collision circle so it can grow.
@@ -101,9 +112,26 @@ func _physics_process(delta: float) -> void:
 		return
 
 	var reversed := chaos_time > 0.0
-	var turn := Input.get_axis("turn_left", "turn_right")
-	var go := Input.is_action_pressed("thrust")
-	var stop_ := Input.is_action_pressed("brake")
+	var turn := 0.0
+	var go := false
+	var stop_ := false
+	var firing := false
+	var dash_now := false
+	var aim := global_position
+	if remote:
+		turn = Net.remote_turn
+		go = Net.remote_buttons & Net.BTN_THRUST != 0
+		stop_ = Net.remote_buttons & Net.BTN_BRAKE != 0
+		firing = Net.remote_buttons & Net.BTN_FIRE != 0
+		dash_now = Net.take_event("dash")
+		aim = Net.remote_mouse
+	else:
+		turn = Input.get_axis("turn_left", "turn_right")
+		go = Input.is_action_pressed("thrust")
+		stop_ = Input.is_action_pressed("brake")
+		firing = Input.is_action_pressed("fire")
+		dash_now = Input.is_action_just_pressed("dash")
+		aim = get_global_mouse_position()
 	if reversed:
 		turn = -turn # Chaos only swaps A/D; W/S work normally
 	if slick_time > 0.0:
@@ -140,20 +168,19 @@ func _physics_process(delta: float) -> void:
 		position += n * 8.0
 		take_hit()
 
+	# Blasters fire toward the mouse, whichever way the nose points.
 	_fire_cd -= delta
-	if Input.is_action_pressed("fire") and _fire_cd <= 0.0:
+	if firing and _fire_cd <= 0.0:
 		_fire_cd = fire_cooldown
-		_shoot(Vector2.RIGHT.rotated(heading), bullet_speed + speed)
-	# Backward gun: same rate, its own timer, fires out of the tail.
-	_fire_back_cd -= delta
-	if Input.is_action_pressed("fire_back") and _fire_back_cd <= 0.0:
-		_fire_back_cd = fire_cooldown
-		_shoot(Vector2.LEFT.rotated(heading), bullet_speed)
+		var dir := (aim - global_position).normalized()
+		if dir == Vector2.ZERO:
+			dir = Vector2.RIGHT.rotated(heading)
+		_shoot(dir, bullet_speed + maxf(0.0, velocity.dot(dir)))
 
 	# Dash.
 	_dash_cd = maxf(0.0, _dash_cd - delta)
 	_dash_iframe = maxf(0.0, _dash_iframe - delta)
-	if Input.is_action_just_pressed("dash") and _dash_cd <= 0.0:
+	if dash_now and _dash_cd <= 0.0:
 		_dash()
 	if _dash_iframe > 0.0 or _phasing:
 		_spawn_ghost()
@@ -187,7 +214,7 @@ func _dash_shove() -> void:
 
 func _shoot(dir: Vector2, shot_speed: float) -> void:
 	var b := BULLET.instantiate()
-	b.setup(global_position + dir * 36.0 * size_mult, dir, true, shot_speed)
+	b.setup(global_position + dir * MUZZLE * size_mult, dir, self, shot_speed)
 	get_tree().current_scene.add_child(b)
 	Fx.sound(get_tree().current_scene, SHOOT_SOUND, -8.0)
 
@@ -261,6 +288,8 @@ func _die() -> void:
 	stop()
 	sprite.visible = false
 	shield.visible = false
+	collision_layer = 0 # nothing can hit the wreck
+	collision_mask = 0
 	died.emit()
 
 

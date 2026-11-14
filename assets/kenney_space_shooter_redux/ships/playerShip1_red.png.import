@@ -2,16 +2,16 @@
 
 importer="texture"
 type="CompressedTexture2D"
-uid="uid://c5w3ue18d7pel"
-path="res://.godot/imported/spaceAstronauts_013.png-71bedaba72b6c20d92ddb056a3f5e543.ctex"
+uid="uid://bsd55q140772s"
+path="res://.godot/imported/playerShip1_red.png-b821019b903963e5956b8e5dfade59f1.ctex"
 metadata={
 "vram_texture": false
 }
 
 [deps]
 
-source_file="res://assets/kenney_space_shooter_extension/spaceAstronauts_013.png"
-dest_files=["res://.godot/imported/spaceAstronauts_013.png-71bedaba72b6c20d92ddb056a3f5e543.ctex"]
+source_file="res://assets/kenney_space_shooter_redux/ships/playerShip1_red.png"
+dest_files=["res://.godot/imported/playerShip1_red.png-b821019b903963e5956b8e5dfade59f1.ctex"]
 
 [params]
 

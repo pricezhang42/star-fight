@@ -1,6 +1,6 @@
 extends Control
-## Title screen: play on one computer, host a LAN game (as Luke) or join one
-## (as Darth).
+## Title screen: fly solo for practice, host a LAN game (blue ship) or join
+## one (red ship).
 
 @onready var status: Label = $Center/Box/Status
 @onready var ip_box: LineEdit = $Center/Box/JoinRow/IP

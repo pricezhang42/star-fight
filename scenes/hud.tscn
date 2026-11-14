@@ -1,13 +1,7 @@
-[gd_scene load_steps=5 format=3]
+[gd_scene load_steps=4 format=3]
 
 [ext_resource type="Script" path="res://scripts/hud.gd" id="1"]
 [ext_resource type="FontFile" path="res://assets/kenney_space_shooter_redux/fonts/kenvector_future.ttf" id="2"]
-
-[sub_resource type="LabelSettings" id="small"]
-font = ExtResource("2")
-font_size = 14
-outline_size = 3
-outline_color = Color(0, 0, 0, 1)
 
 [sub_resource type="Gradient" id="dg"]
 colors = PackedColorArray(1, 0.1, 0.1, 0, 1, 0.1, 0.1, 0.75)
@@ -39,22 +33,23 @@ mouse_filter = 2
 texture = SubResource("dt")
 expand_mode = 1
 
-[node name="LukeLabel" type="Label" parent="."]
+[node name="P1Label" type="Label" parent="."]
+modulate = Color(0.55, 0.8, 1, 1)
 offset_left = 16.0
 offset_top = 18.0
 offset_right = 116.0
 offset_bottom = 48.0
-text = "LUKE"
+text = "BLUE"
 label_settings = SubResource("ls")
 
-[node name="Lives" type="HBoxContainer" parent="."]
+[node name="P1Lives" type="HBoxContainer" parent="."]
 offset_left = 100.0
 offset_top = 16.0
-offset_right = 300.0
+offset_right = 320.0
 offset_bottom = 46.0
 theme_override_constants/separation = 8
 
-[node name="Dash" type="Label" parent="."]
+[node name="P1Dash" type="Label" parent="."]
 offset_left = 16.0
 offset_top = 50.0
 offset_right = 400.0
@@ -62,18 +57,57 @@ offset_bottom = 80.0
 text = "DASH READY - SHIFT"
 label_settings = SubResource("ls")
 
-[node name="Distance" type="Label" parent="."]
+[node name="P2Label" type="Label" parent="."]
+modulate = Color(1, 0.55, 0.5, 1)
 anchors_preset = 1
 anchor_left = 1.0
 anchor_right = 1.0
-offset_left = -276.0
-offset_top = 16.0
+offset_left = -116.0
+offset_top = 18.0
 offset_right = -16.0
-offset_bottom = 106.0
+offset_bottom = 48.0
 grow_horizontal = 0
-text = "SCORE 0"
+text = "RED"
 label_settings = SubResource("ls")
 horizontal_alignment = 2
+
+[node name="P2Lives" type="HBoxContainer" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -320.0
+offset_top = 16.0
+offset_right = -84.0
+offset_bottom = 46.0
+grow_horizontal = 0
+theme_override_constants/separation = 8
+alignment = 2
+
+[node name="P2Dash" type="Label" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -400.0
+offset_top = 50.0
+offset_right = -16.0
+offset_bottom = 80.0
+grow_horizontal = 0
+text = "DASH READY - SHIFT"
+label_settings = SubResource("ls")
+horizontal_alignment = 2
+
+[node name="Scroll" type="Label" parent="."]
+anchors_preset = 5
+anchor_left = 0.5
+anchor_right = 0.5
+offset_left = -200.0
+offset_top = 16.0
+offset_right = 200.0
+offset_bottom = 46.0
+grow_horizontal = 2
+text = "SCROLL x1.0"
+label_settings = SubResource("ls")
+horizontal_alignment = 1
 
 [node name="Hint" type="Label" parent="."]
 anchors_preset = 7
@@ -82,51 +116,13 @@ anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
 offset_left = -640.0
-offset_top = -74.0
+offset_top = -50.0
 offset_right = 640.0
 offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 0
 modulate = Color(1, 1, 1, 0.7)
-text = "LUKE:  A/D TURN   W THRUST   S BRAKE   SPACE FIRE   B FIRE BACK   SHIFT DASH\nDARTH:  ARROWS MOVE   L-CLICK COMET   R-CLICK ITEM   WHEEL SWITCH"
-label_settings = SubResource("ls")
-horizontal_alignment = 1
-
-[node name="P2" type="Label" parent="."]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -360.0
-offset_top = 16.0
-offset_right = 360.0
-offset_bottom = 46.0
-grow_horizontal = 2
-text = "DARTH  HITS 0"
-label_settings = SubResource("ls")
-horizontal_alignment = 1
-
-[node name="Items" type="HBoxContainer" parent="."]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -150.0
-offset_top = 48.0
-offset_right = 150.0
-offset_bottom = 110.0
-grow_horizontal = 2
-alignment = 1
-theme_override_constants/separation = 14
-
-[node name="LukeStatus" type="Label" parent="."]
-anchors_preset = 5
-anchor_left = 0.5
-anchor_right = 0.5
-offset_left = -400.0
-offset_top = 118.0
-offset_right = 400.0
-offset_bottom = 148.0
-grow_horizontal = 2
-modulate = Color(1, 0.5, 1, 1)
+text = "A/D TURN   W THRUST   S BRAKE   MOUSE AIM   LEFT CLICK FIRE   SHIFT DASH"
 label_settings = SubResource("ls")
 horizontal_alignment = 1
 

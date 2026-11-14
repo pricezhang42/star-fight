@@ -1,8 +1,9 @@
 extends Node
 ## LAN play (autoload "Net"). One computer hosts and runs the whole game
-## (Luke plays there); the other joins as Darth. The joining computer runs no
-## game logic: it sends Darth's keys and mouse to the host, and the host
-## streams back everything that is drawn (see NetMirror), the HUD and sounds.
+## (and flies the blue ship); the other joins and flies the red ship. The
+## joining computer runs no game logic: it sends its keys and mouse to the
+## host, and the host streams back everything that is drawn (see NetMirror),
+## the HUD and sounds.
 ##
 ## Command line shortcuts (after "--"):  --host   or   --join=<ip>
 
@@ -22,9 +23,13 @@ var mode := Mode.LOCAL
 ## Message shown on the menu when we get sent back there (e.g. disconnects).
 var menu_message := ""
 
-# --- host side: Darth's input as received from the client -----------------
-var remote_vector := Vector2.ZERO
-var remote_mouse := Vector2.ZERO
+# --- host side: the red ship's input as received from the client ----------
+const BTN_THRUST := 1
+const BTN_BRAKE := 2
+const BTN_FIRE := 4
+var remote_turn := 0.0 ## -1..1 (A/D)
+var remote_buttons := 0 ## BTN_* bits that are held down
+var remote_mouse := Vector2.ZERO ## where the red ship is aiming (world position)
 var _remote_events := {}
 
 # --- discovery -------------------------------------------------------------
@@ -78,7 +83,7 @@ func host() -> void:
 	_broadcaster = PacketPeerUDP.new()
 	_broadcaster.set_broadcast_enabled(true)
 	_broadcaster.bind(0)
-	_set_status("Hosting. Waiting for Darth to join...\nThis computer: %s" % ", ".join(lan_addresses()))
+	_set_status("Hosting. Waiting for the other player to join...\nThis computer: %s" % ", ".join(lan_addresses()))
 
 
 func join(address: String) -> void:
@@ -101,7 +106,8 @@ func leave(to_menu := true, message := "") -> void:
 	mode = Mode.LOCAL
 	_broadcaster = null
 	_mirror_sender = null
-	remote_vector = Vector2.ZERO
+	remote_turn = 0.0
+	remote_buttons = 0
 	_remote_events.clear()
 	if to_menu:
 		menu_message = message
@@ -117,7 +123,7 @@ func _on_peer_connected(_id: int) -> void:
 
 func _on_peer_disconnected(_id: int) -> void:
 	if mode == Mode.HOST:
-		leave(true, "Darth's computer disconnected.")
+		leave(true, "The other player disconnected.")
 
 
 func _on_connected() -> void:
@@ -130,7 +136,7 @@ func _on_connection_failed() -> void:
 
 
 func _on_server_disconnected() -> void:
-	leave(true, "The host (Luke's computer) left the game.")
+	leave(true, "The host left the game.")
 
 
 func _set_status(text: String) -> void:
@@ -192,7 +198,7 @@ func _process(delta: float) -> void:
 			if data == DISCOVERY_TAG and ip != "" and not hosts_found.has(ip):
 				hosts_found.append(ip)
 				hosts_found_changed.emit(hosts_found)
-	# Host: stream the game to Darth's computer.
+	# Host: stream the game to the other computer.
 	if is_host():
 		var scene := get_tree().current_scene
 		if scene and scene.has_method("is_game_scene"):
@@ -245,7 +251,7 @@ func client_hud(state: Dictionary) -> void:
 		view.get_node("HUD").apply_net_state(state)
 
 
-## Called by Fx.sound on the host: play the same sound on Darth's computer.
+## Called by Fx.sound on the host: play the same sound on the other computer.
 func share_sound(stream: AudioStream, volume_db: float) -> void:
 	if is_host() and stream and stream.resource_path != "":
 		client_sound.rpc_id(_client_id(), stream.resource_path, volume_db)
@@ -264,13 +270,13 @@ func client_sound(path: String, volume_db: float) -> void:
 
 
 # ===========================================================================
-# Client -> host: Darth's input
+# Client -> host: the red ship's input
 # ===========================================================================
 
-## Called every frame on Darth's computer.
-func send_input(vec: Vector2, mouse: Vector2) -> void:
+## Called every frame on the joining computer.
+func send_input(turn: float, buttons: int, mouse: Vector2) -> void:
 	if mode == Mode.CLIENT and multiplayer.has_multiplayer_peer():
-		host_input.rpc_id(1, vec, mouse)
+		host_input.rpc_id(1, turn, buttons, mouse)
 
 
 ## Button presses (reliable, so none get lost).
@@ -280,8 +286,9 @@ func send_event(action: String, mouse: Vector2) -> void:
 
 
 @rpc("any_peer", "call_remote", "unreliable_ordered")
-func host_input(vec: Vector2, mouse: Vector2) -> void:
-	remote_vector = vec
+func host_input(turn: float, buttons: int, mouse: Vector2) -> void:
+	remote_turn = clampf(turn, -1.0, 1.0)
+	remote_buttons = buttons
 	remote_mouse = mouse
 
 
@@ -291,7 +298,7 @@ func host_event(action: String, mouse: Vector2) -> void:
 	_remote_events[action] = true
 
 
-## Host: was this button pressed on Darth's computer since last asked?
+## Host: was this button pressed on the other computer since last asked?
 func take_event(action: String) -> bool:
 	if _remote_events.has(action):
 		_remote_events.erase(action)

@@ -1,7 +1,10 @@
 extends Node2D
-## Level controller for the endless run (vertical version): wires up the
-## player and HUD, keeps the level generating above the player, tracks the
-## height score and handles game over and restart.
+## Level controller for the endless versus run: wires up the two ships and the
+## HUD, keeps the level generating above the screen, scrolls the screen and
+## decides the winner (the last ship still flying).
+##
+## Solo practice (no LAN game) has only the blue ship. In a LAN game the host
+## flies blue and the joining computer flies red.
 ##
 ## The level itself is built "sideways" under the Level node, which is turned
 ## 90 degrees so that the level's forward direction (its +x) points up the
@@ -9,22 +12,18 @@ extends Node2D
 
 ## Width of the playable area (x). Height is endless upwards.
 @export var world_size := Vector2(2600, 3400)
-## Score points per pixel climbed.
-@export var score_per_pixel := 0.1
-## Points Luke earns for stunning Darth (3 laser hits).
-@export var darth_hit_points := 100
-## Auto-scroll: the screen climbs on its own, faster as Luke's score rises.
+## Auto-scroll: the screen climbs on its own, faster the higher it gets.
 @export var scroll_start_speed := 60.0
-@export var scroll_per_point := 0.08 ## extra px/s per score point (8 per 100)
+@export var scroll_per_pixel := 0.008 ## extra px/s per pixel climbed (8 per 1000)
 @export var scroll_max_speed := 260.0
 @export var countdown_seconds := 3.0
-## If Luke flies into the top part of the screen (this fraction of its
-## height), the screen speeds up to keep him in view.
+## If a ship flies into the top part of the screen (this fraction of its
+## height), the screen speeds up to keep it in view.
 @export var catch_up_fraction := 0.33
 ## Seconds between random comets at the start (easy) and at full difficulty.
 @export var comet_interval_easy := Vector2(4.0, 6.5)
 @export var comet_interval_hard := Vector2(1.0, 2.2)
-## Most random comets on screen at once (Darth's thrown ones don't count).
+## Most random comets on screen at once.
 @export var max_random_comets := 2
 ## Distance (past the opening section) over which comets ramp up.
 @export var ramp_distance := 20000.0
@@ -33,7 +32,7 @@ extends Node2D
 @export var window_fraction := 0.92
 
 const COMET := preload("res://scenes/comet.tscn")
-const SAVE_PATH := "user://star_fights_vertical.cfg"
+const SHIP_NAMES := {1: "BLUE", 2: "RED"}
 static var _window_sized := false
 
 var _over := false
@@ -43,53 +42,48 @@ var _furthest_x := 0.0
 var _scroll_y := 0.0 ## world y of the screen centre
 var _scroll_speed := 0.0
 var _countdown := 0.0
-var score := 0
-## Points from shooting Darth (added to the distance score).
-var bonus := 0
-var best := 0
+var _solo := false
+## The ships in this game (one in solo practice, two in a LAN game).
+var players: Array = []
 
-@onready var player = $Player
 @onready var hud = $HUD
 @onready var generator = $Level/LevelGenerator
 @onready var background: Sprite2D = $Background
-@onready var camera: Camera2D = $Player/Camera2D
+@onready var camera: Camera2D = $Camera2D
 @onready var lose_sound: AudioStreamPlayer = $LoseSound
 
 
 func _ready() -> void:
-	# The camera no longer follows Luke: main moves it (auto-scroll).
-	camera.top_level = true
-	camera.position_smoothing_enabled = false
 	camera.limit_left = 0
 	camera.limit_right = int(world_size.x)
 	camera.limit_top = -100000000
 	camera.limit_bottom = 100000000
-	player.lives_changed.connect(hud.set_lives)
-	player.died.connect(_on_player_died)
-	hud.set_lives(player.lives)
-	var alien = $AlienAstronaut
-	alien.hits_changed.connect(hud.set_p2_hits)
-	alien.cooldown_changed.connect(hud.set_p2_cooldown)
-	alien.items_changed.connect(hud.set_items)
-	alien.shot_by_luke.connect(_on_darth_shot)
-	alien.stun_changed.connect(hud.set_darth_stun)
-	player.status_changed.connect(hud.set_luke_status)
-	player.dash_changed.connect(hud.set_dash)
-	hud.set_p2_hits(0)
-	_start_x = -player.global_position.y
-	_furthest_x = _start_x
-	best = _load_best()
-	hud.set_score(0, best)
+	# Solo practice has no red ship; in a LAN game it is flown by the joiner.
+	_solo = Net.mode != Net.Mode.HOST
+	players = [$Player]
+	if _solo:
+		$Player2.free()
+		$Player.global_position.x = world_size.x / 2.0
+	else:
+		$Player2.remote = true
+		players.append($Player2)
+	hud.set_solo(_solo)
+	for p in players:
+		var id: int = p.player_id
+		p.lives_changed.connect(func(n: int): hud.set_lives(id, n))
+		p.dash_changed.connect(func(f: float): hud.set_dash(id, f))
+		p.died.connect(_on_player_died.bind(p))
+		hud.set_lives(p.player_id, p.lives)
 	_size_window()
 	get_viewport().size_changed.connect(_fit_width)
 	_fit_width()
-	# Start with the bottom of the screen on the bottom wall and Luke a bit
-	# above it, then count down before scrolling.
+	# Start with the bottom of the screen on the bottom wall and the ships a
+	# bit above it, then count down before scrolling.
 	_scroll_y = -_view_height() / 2.0
 	camera.global_position = Vector2(world_size.x / 2.0, _scroll_y)
-	camera.reset_smoothing()
-	player.global_position.y = -_view_height() * 0.28
-	_start_x = -player.global_position.y
+	for p in players:
+		p.global_position.y = -_view_height() * 0.28
+	_start_x = _view_height() * 0.28
 	_furthest_x = _start_x
 	_countdown = countdown_seconds
 
@@ -112,38 +106,47 @@ func _view_height() -> float:
 	return get_viewport().get_visible_rect().size.y / camera.zoom.y
 
 
-## Auto-scroll, top catch-up, and keeping Luke on screen.
+func _alive_players() -> Array:
+	return players.filter(func(p): return p.alive)
+
+
+## Auto-scroll, top catch-up, and keeping the ships on screen.
 func _update_scroll(delta: float) -> void:
 	var half := _view_height() / 2.0
+	var flying := _alive_players()
 	if _countdown > 0.0:
 		_countdown -= delta
 		hud.set_countdown(ceili(_countdown) if _countdown > 0.0 else 0)
 	elif not _over:
-		_scroll_speed = minf(scroll_start_speed + score * scroll_per_point, scroll_max_speed)
+		_scroll_speed = minf(scroll_start_speed + (_furthest_x - _start_x) * scroll_per_pixel, scroll_max_speed)
 		_scroll_y -= _scroll_speed * delta
-		# Top catch-up: Luke can't fly off the top; the screen follows him.
+		# Top catch-up: a ship can't fly off the top; the screen follows the
+		# higher ship (and so pushes the bottom edge up toward the other one).
 		var catch_line := _scroll_y - half + _view_height() * catch_up_fraction
-		if player.global_position.y < catch_line:
-			_scroll_y -= catch_line - player.global_position.y
+		for p in flying:
+			if p.global_position.y < catch_line:
+				_scroll_y -= catch_line - p.global_position.y
+				catch_line = p.global_position.y
 	hud.set_scroll(maxf(_scroll_speed, scroll_start_speed) / scroll_start_speed)
 	camera.global_position = Vector2(world_size.x / 2.0, _scroll_y)
 
-	if _over:
-		hud.set_danger(0.0)
-		return
-	# Bottom edge: falling below it costs a life and bumps Luke back up.
-	var margin: float = player.BASE_RADIUS * player.size_mult + 6.0
-	var bottom := _scroll_y + half - margin
-	var gap: float = bottom - player.global_position.y
-	hud.set_danger(clampf(1.0 - gap / (_view_height() * 0.25), 0.0, 1.0))
-	if player.global_position.y > bottom:
-		player.global_position.y = bottom
-		var shielded: bool = player._invuln > 0.0 or player._dash_iframe > 0.0 or player._phasing
-		if not shielded:
-			player.take_hit(Vector2(player.global_position.x, bottom + 200.0))
-			player.global_position.y = bottom - 60.0
-		# Either way, the edge carries Luke up with the screen.
-		player.drift.y = minf(player.drift.y, -(_scroll_speed + 150.0))
+	for p in players:
+		if _over or not p.alive:
+			hud.set_danger(p.player_id, 0.0)
+			continue
+		# Bottom edge: falling below it costs a life and bumps the ship back up.
+		var margin: float = p.BASE_RADIUS * p.size_mult + 6.0
+		var bottom := _scroll_y + half - margin
+		var gap: float = bottom - p.global_position.y
+		hud.set_danger(p.player_id, clampf(1.0 - gap / (_view_height() * 0.25), 0.0, 1.0))
+		if p.global_position.y > bottom:
+			p.global_position.y = bottom
+			var shielded: bool = p._invuln > 0.0 or p._dash_iframe > 0.0 or p._phasing
+			if not shielded:
+				p.take_hit(Vector2(p.global_position.x, bottom + 200.0))
+				p.global_position.y = bottom - 60.0
+			# Either way, the edge carries the ship up with the screen.
+			p.drift.y = minf(p.drift.y, -(_scroll_speed + 150.0))
 
 
 ## Zoom the camera so the whole level width fills the screen horizontally.
@@ -158,8 +161,7 @@ func _process(delta: float) -> void:
 		var d := clampf((_furthest_x - 3400.0) / ramp_distance, 0.0, 1.0)
 		var interval := comet_interval_easy.lerp(comet_interval_hard, d)
 		_comet_timer = randf_range(interval.x, interval.y)
-		var random_comets := get_tree().get_nodes_in_group("comets").filter(func(c): return c.thrower == null)
-		if random_comets.size() < max_random_comets:
+		if get_tree().get_nodes_in_group("comets").size() < max_random_comets:
 			_spawn_comet()
 
 	# Slide the tiled background along with the camera (snapped to whole
@@ -168,10 +170,8 @@ func _process(delta: float) -> void:
 	background.position.y = floorf((camera.get_screen_center_position().y - 2100.0) / tile) * tile
 
 	# Progress is measured upwards: level-local x = -world y.
-	var x: float = -player.global_position.y
-	_furthest_x = maxf(_furthest_x, x)
-	score = int((_furthest_x - _start_x) * score_per_pixel) + bonus
-	hud.set_score(score, maxi(score, best))
+	for p in _alive_players():
+		_furthest_x = maxf(_furthest_x, -p.global_position.y)
 
 	_update_scroll(delta)
 
@@ -184,61 +184,22 @@ func _process(delta: float) -> void:
 		get_tree().reload_current_scene()
 
 
-func _on_player_died() -> void:
+## A ship ran out of lives: the other one (if any) wins.
+func _on_player_died(loser: Node) -> void:
 	if _over:
 		return
 	_over = true
 	Fx.sound(self, lose_sound.stream)
-	var new_best := score > best
-	if new_best:
-		best = score
-		_save_best(best)
-	hud.show_message("LUKE'S SHIP IS LOST\n\nSCORE %d%s\nDARTH'S HITS %d\n\nPRESS ENTER TO FLY AGAIN"
-			% [score, "   NEW BEST!" if new_best else "   BEST %d" % best, $AlienAstronaut.hits])
+	if _solo:
+		hud.show_message("YOUR SHIP IS LOST\n\nPRESS ENTER TO FLY AGAIN")
+	else:
+		hud.show_message("%s SHIP WINS!\n\n%s SHIP IS LOST\n\nPRESS ENTER TO PLAY AGAIN"
+				% [SHIP_NAMES[3 - loser.player_id], SHIP_NAMES[loser.player_id]])
 
 
-func _on_darth_shot() -> void:
-	if _over:
-		return
-	bonus += darth_hit_points
-	var alien: Node2D = $AlienAstronaut
-	# Floating "+100" at Darth.
-	var label := Label.new()
-	label.text = "+%d STUN!" % darth_hit_points
-	var ls := LabelSettings.new()
-	ls.font = hud.p2_label.label_settings.font
-	ls.font_size = 64
-	ls.font_color = Color(1.0, 0.9, 0.3)
-	ls.outline_size = 8
-	ls.outline_color = Color.BLACK
-	label.label_settings = ls
-	# Place it a little toward the screen centre so it never sits off-screen.
-	var toward_center := (camera.get_screen_center_position() - alien.global_position).normalized()
-	label.position = alien.global_position + toward_center * 320.0 - Vector2(160, 40)
-	label.z_index = 60
-	add_child(label)
-	var tw := label.create_tween().set_parallel()
-	tw.tween_property(label, "position:y", label.position.y - 120.0, 0.8)
-	tw.tween_property(label, "modulate:a", 0.0, 0.8)
-	tw.chain().tween_callback(label.queue_free)
-
-
-## Marks this as the game scene (Net streams it to Darth's computer).
+## Marks this as the game scene (Net streams it to the other computer).
 func is_game_scene() -> bool:
 	return true
-
-
-func _load_best() -> int:
-	var cfg := ConfigFile.new()
-	if cfg.load(SAVE_PATH) != OK:
-		return 0
-	return int(cfg.get_value("score", "best", 0))
-
-
-func _save_best(value: int) -> void:
-	var cfg := ConfigFile.new()
-	cfg.set_value("score", "best", value)
-	cfg.save(SAVE_PATH)
 
 
 ## Launch a comet from a random edge of the visible screen, flying across it.

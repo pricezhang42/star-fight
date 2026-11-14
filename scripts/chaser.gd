@@ -10,9 +10,9 @@ extends CharacterBody2D
 @export var health := 2
 @export var fire_range := 520.0
 @export var fire_cooldown := 1.3
-## Only Darth's hunter shoots; map chasers just ram.
+## Map chasers just ram; only the (currently unused) hunter shoots.
 @export var can_shoot := false
-## Seconds before it leaves on its own (0 = never). Used by Darth's hunter.
+## Seconds before it leaves on its own (0 = never). Used by the hunter.
 @export var lifetime := 0.0
 
 var heading := 0.0

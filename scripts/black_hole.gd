@@ -30,10 +30,14 @@ func _physics_process(delta: float) -> void:
 	if Engine.is_editor_hint():
 		return
 	_bend_projectiles(delta)
-	var player := get_tree().get_first_node_in_group("player") as Node2D
-	if player == null or not player.alive or player.gravity_grace > 0.0:
+	for player in get_tree().get_nodes_in_group("player"):
+		_pull_ship(player, delta)
+
+
+func _pull_ship(player: Node2D, delta: float) -> void:
+	if not player.alive or player.gravity_grace > 0.0:
 		return
-	var to_center := global_position - player.global_position
+	var to_center: Vector2 = global_position - player.global_position
 	var d := to_center.length()
 	if d > pull_radius or d < 0.001:
 		return
@@ -47,8 +51,8 @@ func _physics_process(delta: float) -> void:
 		player.gravity_grace = fling_grace
 
 
-## Comets and the hunter's bullets curve toward the hole and are swallowed by
-## the core. (Luke's lasers and Darth's beam are not affected.)
+## Comets and alien bullets curve toward the hole and are swallowed by the
+## core. (The players' lasers are not affected.)
 func _bend_projectiles(delta: float) -> void:
 	for node in get_tree().get_nodes_in_group("bendable"):
 		var to_center: Vector2 = global_position - node.global_position
@@ -62,7 +66,7 @@ func _bend_projectiles(delta: float) -> void:
 		node.bend(to_center / d * strength * pow(falloff, 1.5) * 2.0 * delta)
 
 
-## Pull ring for Darth's computer in LAN play (see NetMirror).
+## Pull ring for the other computer in LAN play (see NetMirror).
 func net_draw_commands() -> Array:
 	var a := 0.12 + 0.06 * sin(_t * 2.5)
 	return [["arc", global_position, pull_radius, 0.0, TAU, Color(0.55, 0.75, 1.0, a), 3.0]]

@@ -1,6 +1,7 @@
 extends Node2D
-## Darth's computer in a LAN game. Runs no game logic: it draws what the host
-## streams (see NetMirror) and sends Darth's keys and mouse to the host.
+## The joining computer in a LAN game (red ship). Runs no game logic: it draws
+## what the host streams (see NetMirror) and sends its keys and mouse to the
+## host.
 
 const KENVECTOR := preload("res://assets/kenney_space_shooter_redux/fonts/kenvector_future.ttf")
 const COMET_SCENE := preload("res://scenes/comet.tscn")
@@ -57,10 +58,17 @@ func _process(_delta: float) -> void:
 	var tile := float(background.texture.get_height())
 	background.position = Vector2(-700, floorf((_view_center.y - 2100.0) / tile) * tile)
 
-	# Darth's controls go to the host.
+	# The red ship's controls go to the host.
 	var mouse := get_global_mouse_position()
-	Net.send_input(Input.get_vector("p2_left", "p2_right", "p2_up", "p2_down"), mouse)
-	for action in ["p2_throw", "p2_use", "p2_next", "p2_prev", "restart"]:
+	var buttons := 0
+	if Input.is_action_pressed("thrust"):
+		buttons |= Net.BTN_THRUST
+	if Input.is_action_pressed("brake"):
+		buttons |= Net.BTN_BRAKE
+	if Input.is_action_pressed("fire"):
+		buttons |= Net.BTN_FIRE
+	Net.send_input(Input.get_axis("turn_left", "turn_right"), buttons, mouse)
+	for action in ["dash", "restart"]:
 		if Input.is_action_just_pressed(action):
 			Net.send_event(action, mouse)
 
@@ -169,7 +177,7 @@ func apply_world(packet: PackedByteArray) -> void:
 		l.z_index = z
 	_prune(_labels, seen)
 
-	# Lines (Darth's aim line)
+	# Lines
 	seen = {}
 	for i in b.get_u16():
 		var id := b.get_64()
@@ -195,15 +203,11 @@ func apply_world(packet: PackedByteArray) -> void:
 		var id := b.get_64()
 		var pos := Vector2(b.get_float(), b.get_float())
 		var dir := Vector2(b.get_float(), b.get_float())
-		var kind := b.get_u8()
+		b.get_u8() # trail kind (unused: there is only one kind of comet now)
 		seen[id] = true
 		var p: CPUParticles2D = _parts.get(id)
 		if p == null:
 			p = _trail_template.duplicate()
-			if kind == 1:
-				var ramp := Gradient.new()
-				ramp.colors = PackedColorArray([Color(0.7, 1.0, 0.5, 1.0), Color(0.1, 0.8, 0.3, 0.0)])
-				p.color_ramp = ramp
 			world.add_child(p)
 			_parts[id] = p
 		p.global_position = pos
@@ -234,7 +238,5 @@ func _on_draws_draw() -> void:
 		match cmd[0]:
 			"line":
 				draws_node.draw_line(cmd[1], cmd[2], cmd[3], cmd[4])
-			"dashed":
-				draws_node.draw_dashed_line(cmd[1], cmd[2], cmd[3], cmd[4], cmd[5])
 			"arc":
 				draws_node.draw_arc(cmd[1], cmd[2], cmd[3], cmd[4], 96, cmd[5], cmd[6])

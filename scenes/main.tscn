@@ -1,10 +1,9 @@
-[gd_scene load_steps=20 format=3]
+[gd_scene load_steps=19 format=3]
 
 [ext_resource type="Script" path="res://scripts/main.gd" id="main"]
 [ext_resource type="Script" path="res://scripts/level_generator.gd" id="gen"]
 [ext_resource type="PackedScene" path="res://scenes/rock.tscn" id="rock"]
 [ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/meteors/meteorGrey_big3.png" id="rocktex"]
-[ext_resource type="PackedScene" path="res://scenes/alien_astronaut.tscn" id="astronaut"]
 [ext_resource type="Texture2D" path="res://assets/kenney_space_shooter_redux/backgrounds/darkPurple.png" id="bg"]
 [ext_resource type="PackedScene" path="res://scenes/player.tscn" id="player"]
 [ext_resource type="PackedScene" path="res://scenes/meteor_wall.tscn" id="wall"]
@@ -171,10 +170,15 @@ script = ExtResource("gen")
 world_height = 2600.0
 
 [node name="Player" parent="." instance=ExtResource("player")]
-position = Vector2(1408, -130)
+position = Vector2(1100, -130)
 rotation = -1.5708
 
-[node name="AlienAstronaut" parent="." instance=ExtResource("astronaut")]
+[node name="Player2" parent="." instance=ExtResource("player")]
+position = Vector2(1500, -130)
+rotation = -1.5708
+player_id = 2
+
+[node name="Camera2D" type="Camera2D" parent="."]
 
 [node name="HUD" parent="." instance=ExtResource("hud")]
 

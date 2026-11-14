@@ -52,11 +52,11 @@ horizontal_alignment = 1
 
 [node name="Local" type="Button" parent="Center/Box"]
 layout_mode = 2
-text = "LOCAL 2 PLAYERS (ONE COMPUTER)"
+text = "SOLO PRACTICE"
 
 [node name="Host" type="Button" parent="Center/Box"]
 layout_mode = 2
-text = "HOST LAN GAME (PLAY AS LUKE)"
+text = "HOST LAN GAME (BLUE SHIP)"
 
 [node name="JoinRow" type="HBoxContainer" parent="Center/Box"]
 layout_mode = 2
@@ -68,7 +68,7 @@ placeholder_text = "HOST ADDRESS, E.G. 192.168.1.20"
 
 [node name="Join" type="Button" parent="Center/Box/JoinRow"]
 layout_mode = 2
-text = "JOIN AS DARTH"
+text = "JOIN (RED SHIP)"
 
 [node name="FoundTitle" type="Label" parent="Center/Box"]
 layout_mode = 2

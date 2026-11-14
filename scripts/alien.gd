@@ -15,7 +15,7 @@ static func fire(owner_node: Node2D, dir: Vector2, muzzle := 34.0) -> void:
 	if owner_node.get_tree().get_nodes_in_group("enemy_bullets").size() >= MAX_ENEMY_BULLETS:
 		return
 	var b := BULLET.instantiate()
-	b.setup(owner_node.global_position + dir.normalized() * muzzle, dir, false, BULLET_SPEED)
+	b.setup(owner_node.global_position + dir.normalized() * muzzle, dir, null, BULLET_SPEED)
 	owner_node.get_tree().current_scene.add_child(b)
 	Fx.sound(owner_node.get_tree().current_scene, SHOOT, -10.0)
 
@@ -34,8 +34,13 @@ static func explode(owner_node: Node2D) -> void:
 	owner_node.queue_free()
 
 
-static func find_player(node: Node) -> Node2D:
-	var p := node.get_tree().get_first_node_in_group("player") as Node2D
-	if p and p.alive:
-		return p
-	return null
+## The nearest ship that is still flying (null if there is none).
+static func find_player(node: Node2D) -> Node2D:
+	var best: Node2D = null
+	var best_d := INF
+	for p in node.get_tree().get_nodes_in_group("player"):
+		var d: float = node.global_position.distance_squared_to(p.global_position)
+		if p.alive and d < best_d:
+			best = p
+			best_d = d
+	return best

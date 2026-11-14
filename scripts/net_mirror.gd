@@ -1,10 +1,10 @@
 class_name NetMirror
-## Streams "what is drawn" from the host's game to Darth's computer.
+## Streams "what is drawn" from the host's game to the joining computer.
 ##
 ## The host walks its game scene every frame and packs every visible
 ## Sprite2D, world Label and Line2D (with its on-screen transform, colour and
-## draw order), plus a few custom-drawn things (Darth's track, black hole
-## rings, laser warnings) and comet trails. Darth's computer rebuilds the same
+## draw order), plus a few custom-drawn things (black hole rings, laser
+## warnings) and comet trails. The joining computer rebuilds the same
 ## picture from that, without running any game logic itself.
 
 const VIEW_MARGIN := 900.0 ## also send things just outside the view
