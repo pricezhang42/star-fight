@@ -46,7 +46,7 @@ const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 ## Gap between the track and the screen edge, in screen pixels.
 @export var inset := 50.0
 @export var throw_cooldown := 4.0
-@export var comet_speed := 560.0
+@export var comet_speed := 850.0
 
 var hits := 0
 ## Position along the track, 0..1 (clockwise from the top-left corner).
