@@ -23,6 +23,7 @@ const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
 var _p2_hits := 0
 var _p2_ready := 0.0
+var _p2_stun := 0.0
 
 
 func _ready() -> void:
@@ -61,10 +62,19 @@ func set_p2_cooldown(ready_fraction: float) -> void:
 	_update_p2()
 
 
+func set_darth_stun(seconds_left: float) -> void:
+	_p2_stun = seconds_left
+	_update_p2()
+
+
 func _update_p2() -> void:
 	var state := "COMET READY - CLICK" if _p2_ready >= 1.0 else "RECHARGING %d%%" % int(_p2_ready * 100.0)
+	if _p2_stun > 0.0:
+		state = "STUNNED %.1fs" % _p2_stun
 	p2_label.text = "DARTH  HITS %d   %s" % [_p2_hits, state]
 	p2_label.modulate = Color(0.6, 1.0, 0.6) if _p2_ready >= 1.0 else Color(0.6, 0.8, 0.6, 0.7)
+	if _p2_stun > 0.0:
+		p2_label.modulate = Color(1.0, 0.9, 0.4)
 
 
 ## Darth's item slots: icon + name, the selected one highlighted.

@@ -28,6 +28,12 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
   through get shoved out of the way.
 
 **Darth, the alien astronaut**
+- **Health colour:** Darth is black when healthy, yellow after 1 laser hit
+  from Luke and red after 2. The 3rd hit stuns Darth for 5 s (grey, spinning
+  stars): no moving, throwing, items or crate pickups, and the comet recharge
+  pauses. Luke gets +100. Hits during the stun and for 2 s after it don't
+  count, and if Luke goes 4 s without a hit the colour steps back down one
+  level.
 - **Arrow keys:** run along the dashed U-shaped track: down the left edge of
   the screen, along the bottom and up the right edge (there is no top edge;
   the two top corners are dead ends). Press along the edge you're on to move.
