@@ -32,6 +32,7 @@ extends Node2D
 @export var window_fraction := 0.92
 
 const COMET := preload("res://scenes/comet.tscn")
+const BUMP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldDown.ogg")
 const SHIP_NAMES := {1: "BLUE", 2: "RED"}
 static var _window_sized := false
 
@@ -45,6 +46,10 @@ var _countdown := 0.0
 var _solo := false
 ## The ships in this game (one in solo practice, two in a LAN game).
 var players: Array = []
+## Ships bounce off each other (no damage). Push speed and a short pause so
+## one touch doesn't bounce them over and over.
+@export var bump_push := 260.0
+var _bump_cd := 0.0
 
 @onready var hud = $HUD
 @onready var generator = $Level/LevelGenerator
@@ -73,11 +78,14 @@ func _ready() -> void:
 		p.lives_changed.connect(func(n: int): hud.set_lives(id, n))
 		p.dash_changed.connect(func(f: float): hud.set_dash(id, f))
 		p.laser_changed.connect(func(f: float): hud.set_laser(id, f))
+		p.items_changed.connect(func(it: Array, sel: int): hud.set_items(id, it, sel))
 		p.died.connect(_on_player_died.bind(p))
 		hud.set_lives(p.player_id, p.lives)
 	_size_window()
 	get_viewport().size_changed.connect(_fit_width)
 	_fit_width()
+	# Three power-ups scattered over the hand-made opening section.
+	generator.call_deferred("place_pickups", generator, 300.0, 3300.0, 3)
 	# Start with the bottom of the screen on the bottom wall and the ships a
 	# bit above it, then count down before scrolling.
 	_scroll_y = -_view_height() / 2.0
@@ -105,6 +113,27 @@ func _size_window() -> void:
 
 func _view_height() -> float:
 	return get_viewport().get_visible_rect().size.y / camera.zoom.y
+
+
+func _physics_process(delta: float) -> void:
+	_bump_cd = maxf(0.0, _bump_cd - delta)
+	var flying := _alive_players()
+	if flying.size() < 2 or _bump_cd > 0.0:
+		return
+	var a: Node2D = flying[0]
+	var b: Node2D = flying[1]
+	var gap: Vector2 = b.global_position - a.global_position
+	var touch: float = a.BASE_RADIUS * a.size_mult + b.BASE_RADIUS * b.size_mult
+	if gap.length() < touch:
+		var n := gap.normalized() if gap.length() > 0.01 else Vector2.RIGHT
+		a.drift = a.drift.slide(n) - n * bump_push
+		b.drift = b.drift.slide(n) + n * bump_push
+		# Nudge them apart so they don't stay overlapped.
+		var overlap: float = touch - gap.length()
+		a.global_position -= n * overlap * 0.5
+		b.global_position += n * overlap * 0.5
+		_bump_cd = 0.3
+		Fx.sound(self, BUMP_SOUND, -6.0)
 
 
 func _alive_players() -> Array:

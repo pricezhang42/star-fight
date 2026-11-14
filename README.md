@@ -69,14 +69,29 @@ Both players use the same controls, each on their own computer:
 - A hit from the other ship's laser costs a life and gives the usual
   3 second shield. Your own bolts can't hurt you.
 - Blue fires blue shots, red fires red ones.
-- The ships fly through each other; they don't collide.
+- When the ships touch they bounce off each other a short way. Neither
+  loses a life.
 - When a ship runs out of lives the other ship wins.
 
-## Powerups
+## Power-ups
 
-There are none at the moment. The old item effects (chaos, giant, slick, flash,
-laser, hunter) are still in the code but nothing triggers them; they will come
-back one at a time as pickups on the map.
+Glowing capsules float at random spots in open space: 3 in the opening section
+and 1-2 in every new stretch of the level. Each shows its item's icon and name.
+Fly through one to take it; whoever touches it first gets it. Each ship holds
+up to **2** power-ups (shown under its lives, dash and laser); if both slots
+are full the capsule stays where it is.
+
+- **Right click:** use the selected power-up (aimed ones go where the turret
+  points / toward the mouse).
+- **Space:** switch between your two power-ups.
+
+| Power-up | Effect |
+| --- | --- |
+| Laser | A flashing warning line along your turret for 1 s, then a wide beam that costs the other ship a life if it crosses it and destroys rocks on its line. It can't hurt you. |
+| Shrink | Your own ship shrinks to 60% size for 8 s: harder to hit, fits through tighter gaps. |
+| Missile | A homing missile that chases the other ship (450 px/s, up to 7 s). It explodes on rocks, planets, satellites and walls; a hit costs a life. The other ship can shoot it down with its laser or dash through it. |
+| Chaos | The other ship's A and D are swapped for 3 s. |
+| Grenade | Thrown toward the mouse (up to 900 px); explodes where you clicked and pushes everything within about 450 px outward: ships, rocks, comets, missiles and shots. No damage. |
 
 ## Rules
 

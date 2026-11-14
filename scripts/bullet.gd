@@ -49,13 +49,14 @@ func make_heavy() -> void:
 	heavy = true
 	life = 14.0
 	scale = Vector2.ONE * 1.8
-	collision_mask = 1 | 2 # rocks to bounce off, and ships
+	collision_mask = 1 | 2 | 32 # rocks to bounce off, ships, and missiles
 
 
 func _ready() -> void:
 	sprite.texture = BLUE_TEX if _blue else RED_TEX
 	if heavy:
 		add_to_group("bendable") # black holes bend heavy shots too
+		add_to_group("player_shots") # grenades push them
 	if not from_player:
 		add_to_group("enemy_bullets")
 		add_to_group("bendable") # black holes bend enemy shots, not the players'
@@ -107,7 +108,11 @@ func _on_body_entered(body: Node) -> void:
 
 func _on_area_entered(area: Area2D) -> void:
 	if heavy:
-		return # flies over comets
+		# Shoots down the other ship's missiles; flies over comets.
+		if area.is_in_group("missiles") and area.shooter != shooter:
+			area.explode()
+			_impact()
+		return
 	if area.is_in_group("alien_hurtbox"):
 		if from_player:
 			area.get_parent().take_damage(1)

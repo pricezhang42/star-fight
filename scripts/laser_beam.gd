@@ -1,11 +1,16 @@
 extends Node2D
-## Darth's Laser: a thin flashing warning line first, then a thick beam along
-## the same line that costs Luke a life if it touches him. Passes through
-## everything.
+## Laser power-up: a thin flashing warning line first, then a thick beam
+## along the same line that costs the other ship a life if it touches it and
+## destroys rocks on its line. Passes through everything. It can't hurt the
+## ship that fired it.
 
 signal hit_luke
 
 const BEAM_TEX := preload("res://assets/kenney_space_shooter_redux/lasers/laserRed01.png")
+const BLUE_BEAM_TEX := preload("res://assets/kenney_space_shooter_redux/lasers/laserBlue01.png")
+
+## The ship that fired it (never hit by its own beam).
+var shooter: Node = null
 const FIRE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_laser2.ogg")
 
 @export var warn_time := 1.0
@@ -30,7 +35,7 @@ func _ready() -> void:
 	z_index = 40
 	add_to_group("net_draw")
 	_beam = Sprite2D.new()
-	_beam.texture = BEAM_TEX
+	_beam.texture = BLUE_BEAM_TEX if shooter and shooter.player_id == 1 else BEAM_TEX
 	_beam.rotation = PI / 2.0 # the sprite is vertical
 	_beam.centered = true
 	_beam.position = Vector2(length / 2.0, 0)
@@ -58,19 +63,19 @@ func _process(delta: float) -> void:
 func _check_hit() -> void:
 	if _hit:
 		return
-	var luke := get_tree().get_first_node_in_group("player") as Node2D
-	if luke == null or not luke.alive:
-		return
 	var a := global_position
 	var b := a + direction * length
-	var closest := Geometry2D.get_closest_point_to_segment(luke.global_position, a, b)
-	var reach: float = beam_width * 0.5 + 20.0 * luke.size_mult
-	if luke.global_position.distance_to(closest) < reach:
-		_hit = true
-		var before: int = luke.lives
-		luke.take_hit(closest)
-		if luke.lives < before:
-			hit_luke.emit()
+	for ship in get_tree().get_nodes_in_group("player"):
+		if ship == shooter or not ship.alive:
+			continue
+		var closest := Geometry2D.get_closest_point_to_segment(ship.global_position, a, b)
+		var reach: float = beam_width * 0.5 + ship.BASE_RADIUS * ship.size_mult
+		if ship.global_position.distance_to(closest) < reach:
+			_hit = true
+			var before: int = ship.lives
+			ship.take_hit(closest)
+			if ship.lives < before:
+				hit_luke.emit()
 
 
 ## The beam destroys every breakable rock along its line.

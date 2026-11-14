@@ -20,6 +20,8 @@ signal status_changed(reversed: bool, giant: bool, slick: bool)
 signal dash_changed(ready_fraction: float)
 ## 0..1 how recharged the laser is (1 = ready).
 signal laser_changed(ready_fraction: float)
+## The power-ups held (PowerUps.Kind values) and which one is selected.
+signal items_changed(items: Array, selected: int)
 
 ## 1 = blue ship (this computer), 2 = red ship.
 @export var player_id := 1
@@ -52,6 +54,15 @@ var remote := false
 @export var knockback := 600.0
 
 const BULLET := preload("res://scenes/bullet.tscn")
+const LASER_BEAM := preload("res://scripts/laser_beam.gd")
+const MISSILE := preload("res://scripts/homing_missile.gd")
+const GRENADE := preload("res://scripts/grenade.gd")
+const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
+## Power-up tuning.
+const SHRINK_SCALE := 0.6
+const SHRINK_SECONDS := 8.0
+const CHAOS_SECONDS := 3.0
+const GRENADE_RANGE := 900.0
 ## Blaster sounds: one is picked at random for each shot.
 const SHOOT_SOUNDS := [
 	preload("res://assets/generated/blaster_1.wav"),
@@ -76,6 +87,11 @@ var _shoved := {} ## rocks already shoved by the current dash
 var _phasing := false
 var _last_dash_report := -1.0
 var _last_laser_report := -1.0
+## Power-ups held (up to PowerUps.MAX_HELD) and the selected slot.
+var items: Array = []
+var selected := 0
+## Seconds left at small size (Shrink power-up).
+var shrink_time := 0.0
 var heading := 0.0
 var alive := true
 var _invuln := 0.0
@@ -131,6 +147,8 @@ func _physics_process(delta: float) -> void:
 	var stop_ := false
 	var firing := false
 	var dash_now := false
+	var use_now := false
+	var next_now := false
 	var aim := global_position
 	if remote:
 		turn = Net.remote_turn
@@ -138,6 +156,8 @@ func _physics_process(delta: float) -> void:
 		stop_ = Net.remote_buttons & Net.BTN_BRAKE != 0
 		firing = Net.remote_buttons & Net.BTN_FIRE != 0
 		dash_now = Net.take_event("dash")
+		use_now = Net.take_event("use_item")
+		next_now = Net.take_event("next_item")
 		aim = Net.remote_mouse
 	else:
 		turn = Input.get_axis("turn_left", "turn_right")
@@ -145,6 +165,8 @@ func _physics_process(delta: float) -> void:
 		stop_ = Input.is_action_pressed("brake")
 		firing = Input.is_action_pressed("fire")
 		dash_now = Input.is_action_just_pressed("dash")
+		use_now = Input.is_action_just_pressed("use_item")
+		next_now = Input.is_action_just_pressed("next_item")
 		aim = get_global_mouse_position()
 	if reversed:
 		turn = -turn # Chaos only swaps A/D; W/S work normally
@@ -191,6 +213,12 @@ func _physics_process(delta: float) -> void:
 	if firing and _fire_cd <= 0.0:
 		_fire_cd = fire_cooldown
 		_shoot(Vector2.RIGHT.rotated(turret.global_rotation), bullet_speed)
+	# Power-ups: right click uses the selected one, Space switches.
+	if next_now and items.size() > 1:
+		selected = (selected + 1) % items.size()
+		items_changed.emit(items, selected)
+	if use_now and not items.is_empty():
+		_use_item(aim)
 	var laser_ready := 1.0 - _fire_cd / fire_cooldown
 	if absf(laser_ready - _last_laser_report) > 0.01 or (laser_ready >= 1.0 and _last_laser_report < 1.0):
 		_last_laser_report = laser_ready
@@ -245,7 +273,12 @@ func _update_effects(delta: float) -> void:
 	chaos_time = maxf(0.0, chaos_time - delta)
 	giant_time = maxf(0.0, giant_time - delta)
 	slick_time = maxf(0.0, slick_time - delta)
-	var target := GIANT_SCALE if giant_time > 0.0 else 1.0
+	shrink_time = maxf(0.0, shrink_time - delta)
+	var target := 1.0
+	if giant_time > 0.0:
+		target = GIANT_SCALE
+	elif shrink_time > 0.0:
+		target = SHRINK_SCALE
 	size_mult = move_toward(size_mult, target, delta * 4.0)
 	sprite.scale = _base_sprite_scale * size_mult
 	shield.scale = _base_sprite_scale * size_mult
@@ -374,3 +407,65 @@ func _overlapping_solid() -> bool:
 	query.transform = global_transform
 	query.collision_mask = 1
 	return not get_world_2d().direct_space_state.intersect_shape(query, 1).is_empty()
+
+
+# ===========================================================================
+# Power-ups
+# ===========================================================================
+
+## Take a power-up from a pickup. Returns false if both slots are full.
+func add_item(kind: int) -> bool:
+	if items.size() >= PowerUps.MAX_HELD:
+		return false
+	items.append(kind)
+	if items.size() == 1:
+		selected = 0
+	items_changed.emit(items, selected)
+	return true
+
+
+## The other ship, if it's still flying.
+func _opponent() -> Node2D:
+	for ship in get_tree().get_nodes_in_group("player"):
+		if ship != self and ship.alive:
+			return ship
+	return null
+
+
+func _use_item(aim: Vector2) -> void:
+	selected = clampi(selected, 0, items.size() - 1)
+	var kind: int = items[selected]
+	items.remove_at(selected)
+	if selected >= items.size():
+		selected = maxi(0, items.size() - 1)
+	items_changed.emit(items, selected)
+	var scene := get_tree().current_scene
+	var aim_dir := Vector2.RIGHT.rotated(turret.global_rotation)
+	var foe := _opponent()
+	match kind:
+		PowerUps.Kind.LASER:
+			var beam := Node2D.new()
+			beam.set_script(LASER_BEAM)
+			beam.shooter = self
+			beam.setup(global_position, aim_dir)
+			scene.add_child(beam)
+		PowerUps.Kind.SHRINK:
+			shrink_time = SHRINK_SECONDS
+			giant_time = 0.0
+		PowerUps.Kind.MISSILE:
+			var m := Area2D.new()
+			m.set_script(MISSILE)
+			m.setup(global_position + aim_dir * MUZZLE * size_mult, aim_dir, self, foe)
+			scene.add_child(m)
+		PowerUps.Kind.CHAOS:
+			if foe:
+				foe.apply_chaos(CHAOS_SECONDS)
+		PowerUps.Kind.GRENADE:
+			var to := aim - global_position
+			if to.length() > GRENADE_RANGE:
+				to = to.normalized() * GRENADE_RANGE
+			var g := Node2D.new()
+			g.set_script(GRENADE)
+			g.setup(global_position + to.normalized() * MUZZLE, global_position + to)
+			scene.add_child(g)
+	Fx.sound(scene, USE_SOUND, -6.0)

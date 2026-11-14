@@ -23,7 +23,7 @@ Files used (in `assets/kenney_space_shooter_redux/`):
 | Engine flame, shield | `effects/fire00.png`, `effects/shield1.png` |
 | Blaster turret on each ship | `parts/turretBase_big.png`, `parts/gun04.png` |
 | Life icons | `ui/playerLife1_blue.png`, `ui/playerLife1_red.png` |
-| Powerup icons (not in use at the moment) | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
+| Power-up icons | `powerups/powerupYellow_bolt.png`, `powerups/powerupBlue_star.png`, `powerups/powerupRed_bolt.png`, `powerups/powerupGreen_shield.png`, `powerups/pill_green.png`, `powerups/pill_blue.png`, `enemies/enemyBlack1.png` |
 | Hunter ship (tinted purple; not in use at the moment) | `enemies/enemyBlack1.png` |
 | Laser beam powerup (not in use at the moment) | `lasers/laserRed01.png` (stretched) |
 | Background | `backgrounds/darkPurple.png` |
@@ -50,6 +50,7 @@ required by CC0 but is given here with thanks.
 | Passive satellite | `spaceStation_018.png` |
 | Enemy satellite (tinted red in game) | `spaceStation_019.png` |
 | Red enemy starship on the curved path | `spaceShips_004.png` |
+| Homing missile power-up | `spaceMissiles_004.png` |
 
 ## 20 CC0 planet sprites (Planets Set 1.0)
 

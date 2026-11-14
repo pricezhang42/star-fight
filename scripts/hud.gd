@@ -12,6 +12,7 @@ const LIFE_ICONS := {
 @onready var _lives_boxes := {1: $P1Lives, 2: $P2Lives}
 @onready var _dash_labels := {1: $P1Dash, 2: $P2Dash}
 @onready var _laser_labels := {1: $P1Laser, 2: $P2Laser}
+@onready var _item_boxes := {1: $P1Items, 2: $P2Items}
 
 ## Which ship this screen belongs to: 1 on the host (and solo), 2 on the
 ## joining computer. Decides whose bottom-edge warning is shown.
@@ -19,6 +20,8 @@ var local_player := 1
 var _lives := {1: -1, 2: -1}
 var _dash := {1: -1.0, 2: -1.0}
 var _laser := {1: -1.0, 2: -1.0}
+var _items := {1: [], 2: []}
+var _selected := {1: 0, 2: 0}
 var _danger := {1: 0.0, 2: 0.0}
 var _solo := false
 
@@ -33,7 +36,7 @@ func _ready() -> void:
 ## Solo practice: hide the red ship's side of the HUD.
 func set_solo(solo: bool) -> void:
 	_solo = solo
-	for node in [$P2Label, $P2Lives, $P2Dash, $P2Laser]:
+	for node in [$P2Label, $P2Lives, $P2Dash, $P2Laser, $P2Items]:
 		node.visible = not solo
 
 
@@ -74,6 +77,36 @@ func set_laser(id: int, ready_fraction: float) -> void:
 		label.modulate = Color(0.8, 0.75, 0.6, 0.7)
 
 
+## That ship's power-up slots: icon + name, the selected one highlighted.
+func set_items(id: int, items: Array, selected: int) -> void:
+	_items[id] = items.duplicate()
+	_selected[id] = selected
+	var box: HBoxContainer = _item_boxes[id]
+	for c in box.get_children():
+		c.queue_free()
+	for i in items.size():
+		var slot := VBoxContainer.new()
+		slot.alignment = BoxContainer.ALIGNMENT_CENTER
+		var icon := TextureRect.new()
+		icon.texture = PowerUps.ICONS[items[i]]
+		icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+		icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+		icon.custom_minimum_size = Vector2(40, 40) if i == selected else Vector2(30, 30)
+		slot.add_child(icon)
+		var name_label := Label.new()
+		name_label.text = PowerUps.NAMES[items[i]]
+		name_label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+		var ls := LabelSettings.new()
+		ls.font = scroll_label.label_settings.font
+		ls.font_size = 13
+		ls.outline_size = 3
+		ls.outline_color = Color.BLACK
+		name_label.label_settings = ls
+		slot.add_child(name_label)
+		slot.modulate = Color.WHITE if i == selected else Color(1, 1, 1, 0.45)
+		box.add_child(slot)
+
+
 func set_scroll(mult: float) -> void:
 	scroll_label.text = "SCROLL x%.1f" % mult
 
@@ -105,6 +138,8 @@ func get_net_state() -> Dictionary:
 		"lives": [_lives[1], _lives[2]],
 		"dash": [_dash[1], _dash[2]],
 		"laser": [_laser[1], _laser[2]],
+		"items": [_items[1], _items[2]],
+		"sel": [_selected[1], _selected[2]],
 		"danger": [_danger[1], _danger[2]],
 		"scroll": scroll_label.text,
 		"msg": message.text, "msg_on": message.visible,
@@ -122,6 +157,8 @@ func apply_net_state(st: Dictionary) -> void:
 			set_dash(id, st.dash[i])
 		if st.laser[i] != _laser[id]:
 			set_laser(id, st.laser[i])
+		if st.items[i] != _items[id] or st.sel[i] != _selected[id]:
+			set_items(id, st.items[i], st.sel[i])
 		set_danger(id, st.danger[i])
 	scroll_label.text = st.scroll
 	message.text = st.msg

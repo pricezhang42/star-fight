@@ -13,6 +13,7 @@ const BLACK_HOLE := preload("res://scenes/black_hole.tscn")
 const PATH_SHIP := preload("res://scenes/path_ship.tscn")
 const CHASER := preload("res://scenes/chaser.tscn")
 const ROCK := preload("res://scenes/rock.tscn")
+const PICKUP := preload("res://scripts/pickup.gd")
 const ROCK_TEXTURES := [
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorBrown_big1.png"),
 	preload("res://assets/kenney_space_shooter_redux/meteors/meteorGrey_big3.png"),
@@ -62,6 +63,9 @@ func _build_chunk(x0: float) -> void:
 	chunk.set_meta("end_x", x0 + chunk_width)
 	add_child(chunk)
 	var difficulty := clampf((x0 - start_x - easy_stretch) / ramp_distance, 0.0, 1.0)
+	# Power-ups: 1 per stretch early on, 2 later. Placed a frame later, once
+	# the chunk's rocks and planets exist, so they land in open space.
+	call_deferred("place_pickups", chunk, x0, x0 + chunk_width, 1 + int(_rng.randf() < 0.3 + 0.5 * difficulty))
 
 	# Top and bottom borders.
 	for y in [0.0, world_height]:
@@ -227,3 +231,39 @@ func _add_ship_loop(chunk: Node, center: Vector2, ships: int, difficulty: float)
 		_scale_fire(ship, difficulty)
 		path.add_child(ship)
 		ship.progress = length * i / ships
+
+
+## Scatter `count` power-up pickups between level-x `from_x` and `to_x`, in
+## open space: away from rocks, planets, satellites, walls and black holes.
+func place_pickups(parent: Node, from_x: float, to_x: float, count: int) -> void:
+	if not is_instance_valid(parent):
+		return
+	var space := get_world_2d().direct_space_state
+	var probe := CircleShape2D.new()
+	probe.radius = 130.0
+	var holes := get_tree().get_nodes_in_group("net_draw").filter(func(n): return n.has_method("_bend_projectiles"))
+	var placed := 0
+	for attempt in 40:
+		if placed >= count:
+			break
+		var local := Vector2(_rng.randf_range(from_x + 120.0, to_x - 120.0), _rng.randf_range(0.14, 0.86) * world_height)
+		var global_pos := to_global(local)
+		var q := PhysicsShapeQueryParameters2D.new()
+		q.shape = probe
+		q.transform = Transform2D(0.0, global_pos)
+		q.collision_mask = 1
+		if not space.intersect_shape(q, 1).is_empty():
+			continue
+		var near_hole := false
+		for h in holes:
+			if h.global_position.distance_to(global_pos) < h.pull_radius * 0.8:
+				near_hole = true
+				break
+		if near_hole:
+			continue
+		var pickup := Area2D.new()
+		pickup.set_script(PICKUP)
+		pickup.kind = PowerUps.random_kind()
+		pickup.position = parent.to_local(global_pos) if parent != self else local
+		parent.add_child(pickup)
+		placed += 1
