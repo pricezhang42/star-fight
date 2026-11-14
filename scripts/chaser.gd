@@ -25,7 +25,7 @@ var _cooldown := 0.0
 
 func _ready() -> void:
 	home = global_position
-	heading = rotation
+	heading = global_rotation
 	_cooldown = randf_range(0.5, fire_cooldown)
 
 
@@ -50,7 +50,7 @@ func _physics_process(delta: float) -> void:
 	if to_target.length() > 2.0:
 		heading = rotate_toward(heading, to_target.angle(), turn_speed * delta)
 	velocity = Vector2.RIGHT.rotated(heading) * spd
-	rotation = heading
+	global_rotation = heading
 	move_and_slide()
 
 	_cooldown -= delta

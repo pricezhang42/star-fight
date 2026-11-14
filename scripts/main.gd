@@ -1,11 +1,15 @@
 extends Node2D
-## Level controller for the endless run: wires up the player and HUD, keeps
-## the level generating ahead of the player, tracks the distance score and
-## handles game over and restart.
+## Level controller for the endless run (vertical version): wires up the
+## player and HUD, keeps the level generating above the player, tracks the
+## height score and handles game over and restart.
+##
+## The level itself is built "sideways" under the Level node, which is turned
+## 90 degrees so that the level's forward direction (its +x) points up the
+## screen. Level-local x = height climbed = -world y.
 
-## Height of the playable area. (Width is endless.)
-@export var world_size := Vector2(3400, 1200)
-## Score points per pixel flown to the right.
+## Width of the playable area (x). Height is endless upwards.
+@export var world_size := Vector2(2600, 3400)
+## Score points per pixel climbed.
 @export var score_per_pixel := 0.1
 ## Points Luke earns for stunning Darth (3 laser hits).
 @export var darth_hit_points := 100
@@ -23,7 +27,7 @@ extends Node2D
 @export var window_fraction := 0.92
 
 const COMET := preload("res://scenes/comet.tscn")
-const SAVE_PATH := "user://star_fights.cfg"
+const SAVE_PATH := "user://star_fights_vertical.cfg"
 static var _window_sized := false
 
 var _over := false
@@ -37,7 +41,7 @@ var best := 0
 
 @onready var player = $Player
 @onready var hud = $HUD
-@onready var generator = $LevelGenerator
+@onready var generator = $Level/LevelGenerator
 @onready var background: Sprite2D = $Background
 @onready var camera: Camera2D = $Player/Camera2D
 @onready var lose_sound: AudioStreamPlayer = $LoseSound
@@ -45,9 +49,9 @@ var best := 0
 
 func _ready() -> void:
 	camera.limit_left = 0
-	camera.limit_top = 0
-	camera.limit_right = 100000000
-	camera.limit_bottom = int(world_size.y)
+	camera.limit_right = int(world_size.x)
+	camera.limit_top = -100000000
+	camera.limit_bottom = 0
 	player.lives_changed.connect(hud.set_lives)
 	player.died.connect(_on_player_died)
 	hud.set_lives(player.lives)
@@ -60,13 +64,13 @@ func _ready() -> void:
 	player.status_changed.connect(hud.set_luke_status)
 	player.dash_changed.connect(hud.set_dash)
 	hud.set_p2_hits(0)
-	_start_x = player.global_position.x
+	_start_x = -player.global_position.y
 	_furthest_x = _start_x
 	best = _load_best()
 	hud.set_score(0, best)
 	_size_window()
-	get_viewport().size_changed.connect(_fit_height)
-	_fit_height()
+	get_viewport().size_changed.connect(_fit_width)
+	_fit_width()
 
 
 ## Make the window nearly fill the monitor (once per launch).
@@ -83,9 +87,9 @@ func _size_window() -> void:
 	DisplayServer.window_set_position(area.position + (area.size - size) / 2)
 
 
-## Zoom the camera so the whole level height fills the screen vertically.
-func _fit_height() -> void:
-	var z := get_viewport().get_visible_rect().size.y / world_size.y
+## Zoom the camera so the whole level width fills the screen horizontally.
+func _fit_width() -> void:
+	var z := get_viewport().get_visible_rect().size.x / world_size.x
 	camera.zoom = Vector2(z, z)
 
 
@@ -101,10 +105,11 @@ func _process(delta: float) -> void:
 
 	# Slide the tiled background along with the camera (snapped to whole
 	# tiles so it doesn't visibly move).
-	var tile := float(background.texture.get_width())
-	background.position.x = floorf((camera.get_screen_center_position().x - 2200.0) / tile) * tile
+	var tile := float(background.texture.get_height())
+	background.position.y = floorf((camera.get_screen_center_position().y - 2100.0) / tile) * tile
 
-	var x: float = player.global_position.x
+	# Progress is measured upwards: level-local x = -world y.
+	var x: float = -player.global_position.y
 	_furthest_x = maxf(_furthest_x, x)
 	score = int((_furthest_x - _start_x) * score_per_pixel) + bonus
 	hud.set_score(score, maxi(score, best))
@@ -112,12 +117,13 @@ func _process(delta: float) -> void:
 	# Keep the level built ahead, forget what is far behind, and stop the
 	# player flying back into the forgotten part.
 	var back := maxf(0.0, _furthest_x - backtrack_limit)
-	camera.limit_left = int(maxf(0.0, back - 300.0))
+	camera.limit_bottom = int(-maxf(0.0, back - 300.0))
 	generator.update(_furthest_x + 3000.0, back - 2500.0)
 	if not _over and x < back:
-		player.position.x = back
-		player.heading = PI - player.heading # bounce back to the right
-		player.drift.x = absf(player.drift.x)
+		player.position.y = -back
+		player.heading = -player.heading # bounce back upwards
+		player._move_dir = player.heading
+		player.drift.y = -absf(player.drift.y)
 
 	if _over and Input.is_action_just_pressed("restart"):
 		get_tree().reload_current_scene()
