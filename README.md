@@ -4,8 +4,7 @@ This is the **`vertical` branch**: the same game, but it scrolls upwards.
 Luke starts at the bottom and climbs; the level keeps generating above him.
 The play area is 2600 px wide with rock walls on the left and right, and the
 camera fits the full width on screen. Your score is how high you climb
-(furthest point, 1 point per 10 pixels) plus 100 points for every laser hit
-on Darth. The best score is saved separately from the side-scrolling version
+(furthest point, 1 point per 10 pixels) plus 100 points every time Luke stuns Darth. The best score is saved separately from the side-scrolling version
 on `main`. The game starts in fullscreen.
 
 ## Controls
