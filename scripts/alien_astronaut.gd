@@ -16,6 +16,16 @@ const LASER := preload("res://scripts/laser_beam.gd")
 const HUNTER := preload("res://scenes/hunter.tscn")
 const PICKUP_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_shieldUp.ogg")
 const CRATE_TEX := preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow.png")
+const CRATE_FONT := preload("res://assets/kenney_space_shooter_redux/fonts/kenvector_future.ttf")
+## Same icons as Darth's item bar in the HUD (order matches Item).
+const ITEM_ICONS := [
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"),
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupBlue_star.png"),
+	preload("res://assets/kenney_space_shooter_redux/enemies/enemyBlack1.png"),
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed_bolt.png"),
+	preload("res://assets/kenney_space_shooter_redux/powerups/powerupGreen_shield.png"),
+	preload("res://assets/kenney_space_shooter_redux/powerups/pill_blue.png"),
+]
 const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_zap.ogg")
 
 enum Item { CHAOS, FLASH_BANG, HUNTER, LASER, GIANT, SLICK }
@@ -113,25 +123,46 @@ func _update_crates(rect: Rect2, delta: float) -> void:
 		if _crates.size() < max_crates:
 			# Somewhere Darth has to travel to: at least 15% of the track away.
 			var t := wrapf(track_pos + randf_range(0.15, 0.85), 0.0, 1.0)
+			# The crate's item is decided now and shown on it.
+			var item := randi() % Item.size()
 			var spr := Sprite2D.new()
 			spr.texture = CRATE_TEX
 			spr.scale = Vector2.ONE * 2.6
 			spr.top_level = true
 			spr.z_index = 9
 			add_child(spr)
-			_crates.append({"t": t, "life": crate_lifetime, "node": spr})
+			var icon := Sprite2D.new()
+			icon.texture = ITEM_ICONS[item]
+			# Fit the icon inside the crate (icons come in different sizes).
+			icon.scale = Vector2.ONE * (22.0 / maxf(icon.texture.get_width(), icon.texture.get_height()))
+			icon.z_index = 1
+			spr.add_child(icon)
+			var label := Label.new()
+			label.text = ITEM_NAMES[item]
+			var ls := LabelSettings.new()
+			ls.font = CRATE_FONT
+			ls.font_size = 13
+			ls.outline_size = 4
+			ls.outline_color = Color.BLACK
+			label.label_settings = ls
+			label.horizontal_alignment = HORIZONTAL_ALIGNMENT_CENTER
+			label.size = Vector2(80, 16)
+			label.position = Vector2(-40, 16)
+			label.z_index = 1
+			spr.add_child(label)
+			_crates.append({"t": t, "life": crate_lifetime, "node": spr, "item": item})
 	# Update, blink, collect, expire.
 	for i in range(_crates.size() - 1, -1, -1):
 		var c: Dictionary = _crates[i]
 		c.life -= delta
 		var spr: Sprite2D = c.node
 		spr.global_position = _point_on(rect, c.t)
-		spr.rotation = sin(c.life * 3.0) * 0.25
+		spr.rotation = sin(c.life * 3.0) * 0.15
 		spr.visible = c.life > 2.0 or fmod(c.life, 0.3) > 0.12
 		var gap := absf(c.t - track_pos)
 		gap = minf(gap, 1.0 - gap) * perimeter
 		if gap < pickup_distance and items.size() < max_items:
-			items.append(randi() % Item.size())
+			items.append(c.item)
 			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
 			Fx.flash(get_tree().current_scene, spr.global_position, CRATE_TEX, 4.0, 0.3)
 			_items_updated()

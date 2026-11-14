@@ -26,9 +26,6 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
   can't lose a life, so it can also punch through a laser, comet or bullet.
   Recharges in 10 s; shown under Luke's lives. Rocks the dash passes
   through get shoved out of the way.
-- **E:** push. A shockwave in a cone in front of the ship (about 450 px,
-  70 degrees wide) knocks asteroids loose and away and nudges comets.
-  Recharges in 6 s.
 
 **Darth, the alien astronaut**
 - **Arrow keys:** run along the dashed rectangle track around the edge of the
@@ -36,8 +33,8 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
   the next edge, or keep pressing the way you were going, to go round it.
 - **Left click:** throw a green comet toward the mouse (recharges for 4 s).
 - **Crates:** item crates appear at random spots on Darth's track every 6-8 s
-  (at most 2 at once, each lasts 8 s and blinks before it vanishes). Run over
-  one to collect a random item.
+  (at most 2 at once, each lasts 8 s and blinks before it vanishes). Each crate
+  shows the icon and name of the item inside; run over it to collect that item.
 - **Right click:** use the selected item. **Mouse wheel:** switch item.
 
 **Both:** Enter / R restarts after Luke's ship is lost. F11 switches between
@@ -65,7 +62,8 @@ Darth's HITS count comet and laser hits on Luke.
   still until something knocks them, then drift and bump into each other
   before slowing to a stop. Luke's lasers break small ones in 1 hit and big
   ones in 3. The rocks along the top and bottom edge are unbreakable.
-- **Moving asteroids** drift around and bounce off everything.
+- **Moving asteroids** drift around and bounce off everything (5 in the
+  opening, 3 per stretch early on, up to 7 later).
 - **Comets** fly across the screen (at most 2 random ones at once).
 - **Black holes** bend comets and the hunter's bullets (not Luke's lasers or
   Darth's beam) and swallow them at the core.

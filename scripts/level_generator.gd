@@ -107,8 +107,8 @@ func _build_chunk(x0: float) -> void:
 			for i in count:
 				_add_small(chunk, Vector2(cx + _rng.randf_range(-80.0, 80.0), bands[i]), difficulty)
 
-	# Moving asteroids that drift and bounce: one early on, up to four later.
-	for i in 1 + int(3.0 * difficulty + _rng.randf() * 0.99):
+	# Moving asteroids that drift and bounce: three early on, up to seven later.
+	for i in 3 + int(4.0 * difficulty + _rng.randf() * 0.99):
 		var rock := ROCK.instantiate()
 		var idx := _rng.randi() % ROCK_TEXTURES.size()
 		var big := idx < 2

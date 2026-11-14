@@ -1,5 +1,5 @@
 extends RigidBody2D
-## One asteroid. Belt rocks start frozen in place; a push, a dash or another
+## One asteroid. Belt rocks start frozen in place; a dash or another
 ## knock sets them loose and they drift to a stop. "Moving" asteroids drift
 ## and bounce forever. Lasers break them. Touching one costs Luke a life.
 

@@ -9,7 +9,7 @@ const LIFE_ICON := preload("res://assets/kenney_space_shooter_redux/ui/playerLif
 @onready var items_box: HBoxContainer = $Items
 @onready var luke_status: Label = $LukeStatus
 @onready var dash_label: Label = $Dash
-@onready var push_label: Label = $Push
+
 
 const ITEM_ICONS := [
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"), # chaos
@@ -23,6 +23,14 @@ const ITEM_NAMES := ["CHAOS", "FLASH", "HUNTER", "LASER", "GIANT", "SLICK"]
 
 var _p2_hits := 0
 var _p2_ready := 0.0
+
+
+func _ready() -> void:
+	# The control help sits on top of Darth's bottom track, so fade it out
+	# after the first 15 seconds of a run.
+	var tw := $Hint.create_tween()
+	tw.tween_interval(15.0)
+	tw.tween_property($Hint, "modulate:a", 0.0, 1.5)
 
 
 func set_lives(n: int) -> void:
@@ -107,12 +115,3 @@ func set_dash(ready_fraction: float) -> void:
 	else:
 		dash_label.text = "DASH %d%%" % int(ready_fraction * 100.0)
 		dash_label.modulate = Color(0.6, 0.7, 0.8, 0.7)
-
-
-func set_push(ready_fraction: float) -> void:
-	if ready_fraction >= 1.0:
-		push_label.text = "PUSH READY - E"
-		push_label.modulate = Color(0.7, 1.0, 0.9)
-	else:
-		push_label.text = "PUSH %d%%" % int(ready_fraction * 100.0)
-		push_label.modulate = Color(0.6, 0.75, 0.7, 0.7)

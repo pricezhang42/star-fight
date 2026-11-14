@@ -139,6 +139,28 @@ sprite_scale = 0.75
 moving = true
 start_velocity = Vector2(-60, 80)
 
+[node name="MovingRock3" parent="AsteroidBelts" instance=ExtResource("rock")]
+position = Vector2(500, 1250)
+radius = 32.0
+sprite_scale = 0.8
+moving = true
+start_velocity = Vector2(50, 70)
+
+[node name="MovingRock4" parent="AsteroidBelts" instance=ExtResource("rock")]
+position = Vector2(1800, 300)
+texture = ExtResource("rocktex")
+radius = 34.0
+sprite_scale = 0.9
+moving = true
+start_velocity = Vector2(-70, 40)
+
+[node name="MovingRock5" parent="AsteroidBelts" instance=ExtResource("rock")]
+position = Vector2(3000, 1400)
+radius = 28.0
+sprite_scale = 0.7
+moving = true
+start_velocity = Vector2(-50, -80)
+
 [node name="Aliens" type="Node2D" parent="."]
 
 [node name="LevelGenerator" type="Node2D" parent="."]
