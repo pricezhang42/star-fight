@@ -11,7 +11,7 @@ extends Node2D
 @export var world_size := Vector2(2600, 3400)
 ## Score points per pixel climbed.
 @export var score_per_pixel := 0.1
-## Points Luke earns for each laser hit on Darth.
+## Points Luke earns for stunning Darth (3 laser hits).
 @export var darth_hit_points := 100
 ## How far behind their furthest point the player may fly back.
 @export var backtrack_limit := 1100.0
@@ -60,6 +60,7 @@ func _ready() -> void:
 	alien.cooldown_changed.connect(hud.set_p2_cooldown)
 	alien.items_changed.connect(hud.set_items)
 	alien.shot_by_luke.connect(_on_darth_shot)
+	alien.stun_changed.connect(hud.set_darth_stun)
 	player.status_changed.connect(hud.set_luke_status)
 	player.dash_changed.connect(hud.set_dash)
 	hud.set_p2_hits(0)
@@ -148,7 +149,7 @@ func _on_darth_shot() -> void:
 	var alien: Node2D = $AlienAstronaut
 	# Floating "+100" at Darth.
 	var label := Label.new()
-	label.text = "+%d" % darth_hit_points
+	label.text = "+%d STUN!" % darth_hit_points
 	var ls := LabelSettings.new()
 	ls.font = hud.p2_label.label_settings.font
 	ls.font_size = 64
@@ -156,7 +157,9 @@ func _on_darth_shot() -> void:
 	ls.outline_size = 8
 	ls.outline_color = Color.BLACK
 	label.label_settings = ls
-	label.position = alien.global_position + Vector2(-60, -120)
+	# Place it a little toward the screen centre so it never sits off-screen.
+	var toward_center := (camera.get_screen_center_position() - alien.global_position).normalized()
+	label.position = alien.global_position + toward_center * 320.0 - Vector2(160, 40)
 	label.z_index = 60
 	add_child(label)
 	var tw := label.create_tween().set_parallel()

@@ -7,8 +7,10 @@ extends Node2D
 signal hits_changed(hits: int)
 signal cooldown_changed(ready_fraction: float)
 signal items_changed(items: Array, selected: int)
-## Luke's laser hit Darth (Luke earns points).
+## Luke stunned Darth (3 hits): Luke earns points.
 signal shot_by_luke
+## Seconds of stun left (0 = not stunned), for the HUD.
+signal stun_changed(seconds_left: float)
 
 const COMET := preload("res://scenes/comet.tscn")
 const FLASH_BANG := preload("res://scripts/flash_bang.gd")
@@ -69,32 +71,37 @@ var _crates: Array = []
 
 
 func _process(delta: float) -> void:
-	_hit_grace = maxf(0.0, _hit_grace - delta)
+	_update_health(delta)
+	var stunned := is_stunned()
 	var rect := _track_rect()
 	if track_pos < 0.0:
 		track_pos = 0.5 * rect.size.y / _track_length(rect)
 	var input := Input.get_vector("p2_left", "p2_right", "p2_up", "p2_down")
-	if input.length() > 0.1:
+	if input.length() > 0.1 and not stunned:
 		_step_along_track(rect, input, speed * delta)
 	global_position = _point_on(rect, track_pos)
-	sprite.rotation += delta * 1.5
 	_track_local = Rect2(rect.position - global_position, rect.size)
 	queue_redraw()
 
 	# Aim line toward the mouse, shown while the throw is ready.
 	var mouse := get_global_mouse_position()
-	aim.visible = _cooldown <= 0.0
+	aim.visible = _cooldown <= 0.0 and not stunned
 	aim.points = PackedVector2Array([Vector2.ZERO, (mouse - global_position).limit_length(260.0)])
 
+	# The comet recharge pauses while stunned.
 	var was := _cooldown
-	_cooldown = maxf(0.0, _cooldown - delta)
+	if not stunned:
+		_cooldown = maxf(0.0, _cooldown - delta)
 	if was != _cooldown or _cooldown == 0.0:
 		cooldown_changed.emit(1.0 - _cooldown / throw_cooldown)
-	if _cooldown <= 0.0 and Input.is_action_just_pressed("p2_throw"):
+	if not stunned and _cooldown <= 0.0 and Input.is_action_just_pressed("p2_throw"):
 		_throw(mouse)
 
 	# Item crates on the track: Darth has to run over them to collect.
+	# (Their timers keep running while Darth is stunned.)
 	_update_crates(rect, delta)
+	if stunned:
+		return
 	if items.size() > 0:
 		if Input.is_action_just_pressed("p2_next"):
 			selected = (selected + 1) % items.size()
@@ -166,7 +173,7 @@ func _update_crates(rect: Rect2, delta: float) -> void:
 		spr.rotation = sin(c.life * 3.0) * 0.15
 		spr.visible = c.life > 2.0 or fmod(c.life, 0.3) > 0.12
 		var gap := absf(c.t - track_pos) * perimeter
-		if gap < pickup_distance and items.size() < max_items:
+		if gap < pickup_distance and items.size() < max_items and not is_stunned():
 			items.append(c.item)
 			Fx.sound(get_tree().current_scene, PICKUP_SOUND, -6.0)
 			Fx.flash(get_tree().current_scene, spr.global_position, CRATE_TEX, 4.0, 0.3)
@@ -224,19 +231,93 @@ func _items_updated() -> void:
 	items_changed.emit(items, selected)
 
 
-## Luke's lasers can hit Darth. Each hit gives Luke points (handled by main).
-## A short grace period stops one burst from counting many times.
-var _hit_grace := 0.0
+## Luke's lasers can hit Darth. Three hits stun Darth for a few seconds
+## (and give Luke points, handled by main). Darth's colour shows the hits:
+## black = healthy, yellow = 1 hit, red = 2 hits. Hits fade one at a time
+## if Luke stops hitting.
+const HITS_TO_STUN := 3
+const STUN_SECONDS := 5.0
+const PROTECT_SECONDS := 2.0 ## after a stun, hits don't count
+const HIT_FADE := 4.0 ## seconds without a hit before one hit is forgotten
 const HIT_GRACE := 0.05
+const HEALTH_COLORS := [Color(0.12, 0.12, 0.15), Color(1.0, 0.85, 0.15), Color(1.0, 0.22, 0.18)]
+const STAR_TEXTURES := [
+	preload("res://assets/kenney_space_shooter_redux/effects/star1.png"),
+	preload("res://assets/kenney_space_shooter_redux/effects/star2.png"),
+]
+
+var hit_count := 0
+var stun_time := 0.0
+var protect_time := 0.0
+var _since_hit := 0.0
+var _hit_grace := 0.0
+var _flash := 0.0
+var _stars: Node2D = null
+
+
+func is_stunned() -> bool:
+	return stun_time > 0.0
 
 
 func take_damage(_amount: int) -> void:
 	if _hit_grace > 0.0:
 		return
 	_hit_grace = HIT_GRACE
-	sprite.modulate = Color(3, 3, 3)
-	create_tween().tween_property(sprite, "modulate", Color(0.7, 1, 0.6, 1), 0.25)
+	_flash = 1.0
+	if is_stunned() or protect_time > 0.0:
+		return # hits during a stun or right after it don't count
+	hit_count += 1
+	_since_hit = 0.0
+	if hit_count >= HITS_TO_STUN:
+		_start_stun()
+
+
+func _start_stun() -> void:
+	hit_count = 0
+	stun_time = STUN_SECONDS
+	aim.visible = false
+	_stars = Node2D.new()
+	_stars.position = Vector2(0, -75)
+	add_child(_stars)
+	for i in 3:
+		var star := Sprite2D.new()
+		star.texture = STAR_TEXTURES[i % STAR_TEXTURES.size()]
+		star.scale = Vector2.ONE * 1.6
+		star.modulate = Color(1.0, 0.95, 0.5)
+		star.position = Vector2.RIGHT.rotated(TAU * i / 3.0) * 45.0
+		_stars.add_child(star)
 	shot_by_luke.emit()
+
+
+## Hit fading, stun countdown, protection blink and the body colour.
+func _update_health(delta: float) -> void:
+	_hit_grace = maxf(0.0, _hit_grace - delta)
+	_flash = maxf(0.0, _flash - delta * 5.0)
+	if is_stunned():
+		stun_time = maxf(0.0, stun_time - delta)
+		stun_changed.emit(stun_time)
+		sprite.rotation = sin(stun_time * 9.0) * 0.35 # dizzy wobble
+		_stars.rotation += delta * 4.0
+		_stars.scale = Vector2(1.0, 0.45) # flattened ring above the head
+		if stun_time <= 0.0:
+			_stars.queue_free()
+			_stars = null
+			protect_time = PROTECT_SECONDS
+	else:
+		sprite.rotation += delta * 1.5
+		if protect_time > 0.0:
+			protect_time = maxf(0.0, protect_time - delta)
+		if hit_count > 0:
+			_since_hit += delta
+			if _since_hit >= HIT_FADE:
+				hit_count -= 1
+				_since_hit = 0.0
+	# Blink while protected.
+	sprite.modulate.a = 0.4 if protect_time > 0.0 and fmod(protect_time, 0.25) < 0.12 else 1.0
+	var mat := sprite.material as ShaderMaterial
+	mat.set_shader_parameter("tint", HEALTH_COLORS[clampi(hit_count, 0, 2)])
+	mat.set_shader_parameter("grey", 1.0 if is_stunned() else 0.0)
+	mat.set_shader_parameter("flash", _flash)
 
 
 ## Called by a thrown comet when it damages the ship.
