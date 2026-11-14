@@ -67,7 +67,7 @@ offset_bottom = -14.0
 grow_horizontal = 2
 grow_vertical = 0
 modulate = Color(1, 1, 1, 0.7)
-text = "LUKE:  A/D TURN   W/S SPEED   SPACE FIRE   B FIRE BACK   SHIFT DASH\nDARTH:  ARROWS MOVE   L-CLICK COMET   R-CLICK ITEM   WHEEL SWITCH"
+text = "LUKE:  A/D TURN   W THRUST   S BRAKE   SPACE FIRE   B FIRE BACK   SHIFT DASH\nDARTH:  ARROWS MOVE   L-CLICK COMET   R-CLICK ITEM   WHEEL SWITCH"
 label_settings = SubResource("ls")
 horizontal_alignment = 1
 

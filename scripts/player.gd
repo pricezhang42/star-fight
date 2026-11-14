@@ -1,7 +1,8 @@
 extends CharacterBody2D
-## Luke's starship (player 1). A/D rotate the ship, W/S speed up and brake,
+## Luke's starship (player 1). A/D rotate the ship, W thrusts (let go and the
+## ship coasts to a stop in about a second), S brakes hard,
 ## Space fires forward, B fires backward, Shift dashes.
-## The ship always keeps drifting forward at its current speed.
+## Momentum: speed builds up while W is held and bleeds off when it isn't.
 ## Darth's items can reverse the controls (chaos) or make it bigger (giant).
 
 signal lives_changed(lives: int)
@@ -11,11 +12,12 @@ signal status_changed(reversed: bool, giant: bool, slick: bool)
 ## 0..1 how recharged the dash is (1 = ready).
 signal dash_changed(ready_fraction: float)
 
-@export var speed := 220.0 ## starting / current speed
-@export var min_speed := 60.0
+@export var speed := 0.0 ## current speed (starts parked)
+@export var min_speed := 0.0
 @export var max_speed := 340.0
-@export var acceleration := 220.0 ## speed gained per second while holding W
-@export var brake_force := 420.0 ## speed lost per second while holding S
+@export var acceleration := 420.0 ## speed gained per second while holding W
+@export var coast_drag := 320.0 ## speed lost per second when W is released
+@export var brake_force := 1400.0 ## speed lost per second while holding S
 @export var turn_speed := 3.2 ## radians per second
 @export var max_lives := 5
 @export var invulnerable_time := 3.0
@@ -118,6 +120,8 @@ func _physics_process(delta: float) -> void:
 		_move_dir = rotate_toward(_move_dir, heading, 8.0 * delta)
 	if go:
 		speed += acceleration * delta
+	else:
+		speed -= coast_drag * delta # coast to a stop
 	if stop_:
 		speed -= brake_force * delta
 	speed = clampf(speed, min_speed, max_speed)

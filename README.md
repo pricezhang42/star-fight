@@ -14,8 +14,9 @@ Two players share one keyboard and mouse: **Luke** flies the starship and
 
 **Luke, the starship**
 - **A / D:** rotate the ship
-- **W / S:** speed up / brake (speed is kept when you let go; the ship never
-  fully stops)
+- **W:** thrust. Hold to speed up; let go and the ship coasts to a stop in
+  about a second.
+- **S:** brake hard.
 - **Space / J:** fire lasers forward
 - **B:** fire lasers backward out of the tail (same rate as the front gun;
   both can fire at once)
