@@ -1,5 +1,5 @@
 extends CanvasLayer
-## Lives and dash for both ships (blue on the left, red on the right), the
+## Lives, dash and laser for both ships (blue on the left, red on the right), the
 ## scroll speed, the bottom-edge warning glow and the big centre message.
 
 const LIFE_ICONS := {
@@ -11,12 +11,14 @@ const LIFE_ICONS := {
 @onready var scroll_label: Label = $Scroll
 @onready var _lives_boxes := {1: $P1Lives, 2: $P2Lives}
 @onready var _dash_labels := {1: $P1Dash, 2: $P2Dash}
+@onready var _laser_labels := {1: $P1Laser, 2: $P2Laser}
 
 ## Which ship this screen belongs to: 1 on the host (and solo), 2 on the
 ## joining computer. Decides whose bottom-edge warning is shown.
 var local_player := 1
 var _lives := {1: -1, 2: -1}
 var _dash := {1: -1.0, 2: -1.0}
+var _laser := {1: -1.0, 2: -1.0}
 var _danger := {1: 0.0, 2: 0.0}
 var _solo := false
 
@@ -31,7 +33,7 @@ func _ready() -> void:
 ## Solo practice: hide the red ship's side of the HUD.
 func set_solo(solo: bool) -> void:
 	_solo = solo
-	for node in [$P2Label, $P2Lives, $P2Dash]:
+	for node in [$P2Label, $P2Lives, $P2Dash, $P2Laser]:
 		node.visible = not solo
 
 
@@ -58,6 +60,18 @@ func set_dash(id: int, ready_fraction: float) -> void:
 	else:
 		label.text = "DASH %d%%" % int(ready_fraction * 100.0)
 		label.modulate = Color(0.6, 0.7, 0.8, 0.7)
+
+
+## 0..1 how recharged that ship's laser is (1 = ready).
+func set_laser(id: int, ready_fraction: float) -> void:
+	_laser[id] = ready_fraction
+	var label: Label = _laser_labels[id]
+	if ready_fraction >= 1.0:
+		label.text = "LASER READY - CLICK"
+		label.modulate = Color(1.0, 0.9, 0.5)
+	else:
+		label.text = "LASER %d%%" % int(ready_fraction * 100.0)
+		label.modulate = Color(0.8, 0.75, 0.6, 0.7)
 
 
 func set_scroll(mult: float) -> void:
@@ -90,6 +104,7 @@ func get_net_state() -> Dictionary:
 	return {
 		"lives": [_lives[1], _lives[2]],
 		"dash": [_dash[1], _dash[2]],
+		"laser": [_laser[1], _laser[2]],
 		"danger": [_danger[1], _danger[2]],
 		"scroll": scroll_label.text,
 		"msg": message.text, "msg_on": message.visible,
@@ -105,6 +120,8 @@ func apply_net_state(st: Dictionary) -> void:
 		set_lives(id, st.lives[i])
 		if st.dash[i] != _dash[id]:
 			set_dash(id, st.dash[i])
+		if st.laser[i] != _laser[id]:
+			set_laser(id, st.laser[i])
 		set_danger(id, st.danger[i])
 	scroll_label.text = st.scroll
 	message.text = st.msg

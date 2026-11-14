@@ -1,6 +1,11 @@
 extends Area2D
 ## Laser bolt fired by a player's ship or an alien. Stops on meteors and
 ## comets. A player's bolt costs the other player's ship a life.
+##
+## Ships fire "heavy" shots (see make_heavy): they work like the comets Darth
+## used to throw. Bigger and long-lived, they bounce off asteroids (knocking
+## them away), fly over planets, satellites, walls and comets, are bent by
+## black holes, and vanish when they hit the other ship.
 
 const BLUE_TEX := preload("res://assets/kenney_space_shooter_redux/lasers/laserBlue01.png")
 const RED_TEX := preload("res://assets/kenney_space_shooter_redux/lasers/laserRed01.png")
@@ -18,7 +23,9 @@ var from_player := true
 var shooter: Node = null
 var _blue := true
 var life := 1.4
+var heavy := false
 var _done := false
+var _ghost_t := 0.0
 
 @onready var sprite: Sprite2D = $Sprite2D
 
@@ -37,8 +44,18 @@ func setup(pos: Vector2, dir: Vector2, fired_by: Node, bolt_speed: float) -> voi
 	collision_mask = PLAYER_MASK if from_player else ALIEN_MASK
 
 
+## Turn this into a ship's heavy laser shot. Call before adding to the tree.
+func make_heavy() -> void:
+	heavy = true
+	life = 14.0
+	scale = Vector2.ONE * 1.8
+	collision_mask = 1 | 2 # rocks to bounce off, and ships
+
+
 func _ready() -> void:
 	sprite.texture = BLUE_TEX if _blue else RED_TEX
+	if heavy:
+		add_to_group("bendable") # black holes bend heavy shots too
 	if not from_player:
 		add_to_group("enemy_bullets")
 		add_to_group("bendable") # black holes bend enemy shots, not the players'
@@ -51,9 +68,32 @@ func _physics_process(delta: float) -> void:
 	life -= delta
 	if life <= 0.0:
 		queue_free()
+	if heavy:
+		# Short glowing streak behind the shot.
+		_ghost_t -= delta
+		if _ghost_t <= 0.0:
+			_ghost_t = 0.03
+			_spawn_ghost()
+
+
+func _spawn_ghost() -> void:
+	var g := Sprite2D.new()
+	g.texture = sprite.texture
+	g.global_position = global_position
+	g.rotation = sprite.global_rotation
+	g.scale = sprite.global_scale
+	g.modulate = Color(1, 1, 1, 0.45)
+	get_parent().add_child(g)
+	var tw := g.create_tween()
+	tw.tween_property(g, "modulate:a", 0.0, 0.2)
+	tw.tween_callback(g.queue_free)
 
 
 func _on_body_entered(body: Node) -> void:
+	if heavy and not body.is_in_group("player"):
+		if body.is_in_group("rocks"):
+			_bounce_off_rock(body)
+		return # flies over planets, satellites and walls
 	if body.is_in_group("player"):
 		if body != shooter:
 			body.take_hit(global_position - direction * 40.0)
@@ -66,6 +106,8 @@ func _on_body_entered(body: Node) -> void:
 
 
 func _on_area_entered(area: Area2D) -> void:
+	if heavy:
+		return # flies over comets
 	if area.is_in_group("alien_hurtbox"):
 		if from_player:
 			area.get_parent().take_damage(1)
@@ -82,7 +124,20 @@ func _impact() -> void:
 	queue_free()
 
 
-## Black hole pull (enemy bullets only; see black_hole.gd).
+## Billiard-style bounce off an asteroid: the shot reflects and keeps its
+## speed, and the rock gets knocked the other way.
+func _bounce_off_rock(rock_body: Node2D) -> void:
+	var n := (global_position - rock_body.global_position).normalized()
+	if n == Vector2.ZERO or direction.dot(n) >= 0.0:
+		return # already moving away from it
+	direction = direction.bounce(n)
+	rotation = direction.angle()
+	# Deferred: physics state can't be changed in the middle of a collision callback.
+	rock_body.call_deferred("knock", -n * speed * 0.45)
+	position += n * 6.0
+
+
+## Black hole pull (enemy and heavy shots; see black_hole.gd).
 func bend(velocity_change: Vector2) -> void:
 	var v := direction * speed + velocity_change
 	speed = v.length()

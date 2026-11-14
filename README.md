@@ -48,9 +48,13 @@ Both players use the same controls, each on their own computer:
 - **W:** thrust. Hold to speed up; let go and the ship coasts to a stop in
   about a second.
 - **S:** brake hard.
-- **Mouse:** aim the blaster. The turret on top of the ship swivels to point
+- **Mouse:** aim the laser. The turret on top of the ship swivels to point
   at the cursor and fires that way, whichever way the ship's nose points.
-- **Left click (hold):** fire.
+- **Left click:** fire one heavy laser shot, then it recharges for 5 s
+  (shown under each ship's dash). The shot works like the comets Darth used
+  to throw: it flies fast, bounces off asteroids and knocks them away, flies
+  over planets, satellites, walls and comets, is bent by black holes, and
+  costs the other ship a life if it hits.
 - **Shift:** dash forward (about +370 px over half a second). For the first
   0.4 s the ship flies straight through rocks, planets and satellites (it
   keeps passing through until it is clear, so it never gets stuck), and it
@@ -62,9 +66,9 @@ Both players use the same controls, each on their own computer:
 
 ## Ship against ship
 
-- A hit from the other ship's blaster costs a life and gives the usual
+- A hit from the other ship's laser costs a life and gives the usual
   3 second shield. Your own bolts can't hurt you.
-- Blue fires blue bolts, red fires red ones.
+- Blue fires blue shots, red fires red ones.
 - The ships fly through each other; they don't collide.
 - When a ship runs out of lives the other ship wins.
 

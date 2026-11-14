@@ -57,6 +57,14 @@ offset_bottom = 80.0
 text = "DASH READY - SHIFT"
 label_settings = SubResource("ls")
 
+[node name="P1Laser" type="Label" parent="."]
+offset_left = 16.0
+offset_top = 80.0
+offset_right = 400.0
+offset_bottom = 110.0
+text = "LASER READY - CLICK"
+label_settings = SubResource("ls")
+
 [node name="P2Label" type="Label" parent="."]
 modulate = Color(1, 0.55, 0.5, 1)
 anchors_preset = 1
@@ -93,6 +101,19 @@ offset_right = -16.0
 offset_bottom = 80.0
 grow_horizontal = 0
 text = "DASH READY - SHIFT"
+label_settings = SubResource("ls")
+horizontal_alignment = 2
+
+[node name="P2Laser" type="Label" parent="."]
+anchors_preset = 1
+anchor_left = 1.0
+anchor_right = 1.0
+offset_left = -400.0
+offset_top = 80.0
+offset_right = -16.0
+offset_bottom = 110.0
+grow_horizontal = 0
+text = "LASER READY - CLICK"
 label_settings = SubResource("ls")
 horizontal_alignment = 2
 

@@ -72,6 +72,7 @@ func _ready() -> void:
 		var id: int = p.player_id
 		p.lives_changed.connect(func(n: int): hud.set_lives(id, n))
 		p.dash_changed.connect(func(f: float): hud.set_dash(id, f))
+		p.laser_changed.connect(func(f: float): hud.set_laser(id, f))
 		p.died.connect(_on_player_died.bind(p))
 		hud.set_lives(p.player_id, p.lives)
 	_size_window()

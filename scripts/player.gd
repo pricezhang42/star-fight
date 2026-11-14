@@ -1,9 +1,11 @@
 extends CharacterBody2D
 ## A player's starship. Player 1 is blue, player 2 is red; otherwise they are
 ## identical. A/D rotate the ship, W thrusts (let go and the ship coasts to a
-## stop in about a second), S brakes hard, Shift dashes. The blaster turret on
-## top of the ship swivels to follow the mouse and fires toward it while the
-## left button is held.
+## stop in about a second), S brakes hard, Shift dashes. The turret on top of
+## the ship swivels to follow the mouse. Left click fires a single heavy laser
+## shot along the turret (5 s cooldown). It flies like the comets Darth used to
+## throw: fast, bounces off asteroids and knocks them away, flies over
+## everything else and is bent by black holes.
 ## Momentum: speed builds up while W is held and bleeds off when it isn't.
 ## Player 1 reads this computer's keyboard and mouse; in a LAN game player 2's
 ## input arrives over the network (see Net).
@@ -16,6 +18,8 @@ signal died
 signal status_changed(reversed: bool, giant: bool, slick: bool)
 ## 0..1 how recharged the dash is (1 = ready).
 signal dash_changed(ready_fraction: float)
+## 0..1 how recharged the laser is (1 = ready).
+signal laser_changed(ready_fraction: float)
 
 ## 1 = blue ship (this computer), 2 = red ship.
 @export var player_id := 1
@@ -30,8 +34,8 @@ var remote := false
 @export var turn_speed := 3.2 ## radians per second
 @export var max_lives := 5
 @export var invulnerable_time := 3.0
-@export var fire_cooldown := 0.22
-@export var bullet_speed := 900.0
+@export var fire_cooldown := 5.0
+@export var bullet_speed := 850.0
 ## How fast outside pushes (black hole pull, knockback) fade, per second.
 @export var drift_damping := 1.6
 ## Dash: extra speed added in the nose direction (fades like other pushes).
@@ -64,6 +68,7 @@ var _phase := 0.0
 var _shoved := {} ## rocks already shoved by the current dash
 var _phasing := false
 var _last_dash_report := -1.0
+var _last_laser_report := -1.0
 var heading := 0.0
 var alive := true
 var _invuln := 0.0
@@ -170,15 +175,19 @@ func _physics_process(delta: float) -> void:
 		position += n * 8.0
 		take_hit()
 
-	# The turret swivels to the mouse and fires that way, whichever way the
-	# nose points. (With the mouse right on the ship it keeps its last angle.)
+	# The turret swivels to the mouse, whichever way the nose points. (With
+	# the mouse right on the ship it keeps its last angle.)
 	if aim.distance_to(global_position) > 1.0:
 		turret.global_rotation = (aim - global_position).angle()
-	_fire_cd -= delta
+	# Laser: one heavy shot along the turret, then a 5 s recharge.
+	_fire_cd = maxf(0.0, _fire_cd - delta)
 	if firing and _fire_cd <= 0.0:
 		_fire_cd = fire_cooldown
-		var dir := Vector2.RIGHT.rotated(turret.global_rotation)
-		_shoot(dir, bullet_speed + maxf(0.0, velocity.dot(dir)))
+		_shoot(Vector2.RIGHT.rotated(turret.global_rotation), bullet_speed)
+	var laser_ready := 1.0 - _fire_cd / fire_cooldown
+	if absf(laser_ready - _last_laser_report) > 0.01 or (laser_ready >= 1.0 and _last_laser_report < 1.0):
+		_last_laser_report = laser_ready
+		laser_changed.emit(laser_ready)
 
 	# Dash.
 	_dash_cd = maxf(0.0, _dash_cd - delta)
@@ -218,6 +227,7 @@ func _dash_shove() -> void:
 func _shoot(dir: Vector2, shot_speed: float) -> void:
 	var b := BULLET.instantiate()
 	b.setup(global_position + dir * MUZZLE * size_mult, dir, self, shot_speed)
+	b.make_heavy()
 	get_tree().current_scene.add_child(b)
 	Fx.sound(get_tree().current_scene, SHOOT_SOUND, -8.0)
 
