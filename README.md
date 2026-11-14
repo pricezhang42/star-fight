@@ -3,7 +3,7 @@
 An endless 2D top-down Godot 4 game. Your ship always drifts forward; fly as
 far right as you can through asteroid belts, planets, black holes and alien
 ships. Your score is the distance you reach (furthest point, 1 point per 10
-pixels) plus 100 points for every laser hit on Darth, and your best score is
+pixels) plus 100 points every time Luke stuns Darth, and your best score is
 saved between runs. The camera zooms so the
 whole level height fills the screen, and the window opens at about 92% of your
 monitor.
