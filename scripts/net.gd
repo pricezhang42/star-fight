@@ -12,7 +12,7 @@ enum Mode { LOCAL, HOST, CLIENT }
 const PORT := 7777
 ## Bump this whenever the network messages change. Both computers must match;
 ## if they don't, they're told to update instead of freezing.
-var NET_PROTOCOL := 5
+var NET_PROTOCOL := 6
 ## The world picture is sent this many times a second, split into small
 ## packets that each fit in one network packet (no fragmenting).
 const WORLD_RATE := 30.0

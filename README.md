@@ -111,7 +111,6 @@ are full the capsule stays where it is.
 | Laser | A flashing warning line along your turret for 1 s, then a wide beam that costs the other ship a life if it crosses it and destroys rocks on its line. It can't hurt you. |
 | Shrink | Your own ship shrinks to 60% size for 8 s: harder to hit, fits through tighter gaps. |
 | Missile | A homing missile that chases the other ship (450 px/s, up to 7 s). It explodes on rocks, planets, satellites and walls; a hit costs a life. The other ship can shoot it down with its laser or dash through it. |
-| Chaos | The other ship's A and D are swapped for 3 s. |
 | Grenade | Thrown toward the mouse (up to 900 px); explodes where you clicked and pushes everything within about 450 px outward: ships, rocks, comets, missiles and shots. No damage. |
 | Shield | A bubble in your ship's colour absorbs the next hit of any kind (no life lost), then pops. Lasts up to 10 s. |
 

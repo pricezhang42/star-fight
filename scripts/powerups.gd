@@ -1,14 +1,13 @@
 class_name PowerUps
 ## The power-up items: names and icons, shared by pickups, ships and the HUD.
 
-enum Kind { LASER, SHRINK, MISSILE, CHAOS, GRENADE, SHIELD }
+enum Kind { LASER, SHRINK, MISSILE, GRENADE, SHIELD }
 
-const NAMES := ["LASER", "SHRINK", "MISSILE", "CHAOS", "GRENADE", "SHIELD"]
+const NAMES := ["LASER", "SHRINK", "MISSILE", "GRENADE", "SHIELD"]
 const ICONS := [
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupRed_bolt.png"),
 	preload("res://assets/kenney_space_shooter_redux/powerups/pill_green.png"),
 	preload("res://assets/kenney_space_shooter_extension/spaceMissiles_004.png"),
-	preload("res://assets/kenney_space_shooter_redux/powerups/powerupYellow_bolt.png"),
 	preload("res://assets/kenney_space_shooter_redux/powerups/powerupBlue_star.png"),
 	preload("res://assets/kenney_space_shooter_redux/powerups/shield_gold.png"),
 ]

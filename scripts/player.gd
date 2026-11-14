@@ -79,7 +79,6 @@ const USE_SOUND := preload("res://assets/kenney_space_shooter_redux/sounds/sfx_z
 ## Power-up tuning.
 const SHRINK_SCALE := 0.6
 const SHRINK_SECONDS := 8.0
-const CHAOS_SECONDS := 3.0
 const GRENADE_RANGE := 900.0
 ## Blaster sounds: one is picked at random for each shot.
 const SHOOT_SOUNDS := [
@@ -548,9 +547,6 @@ func _use_item(aim: Vector2) -> void:
 			m.set_script(MISSILE)
 			m.setup(global_position + aim_dir * MUZZLE * size_mult, aim_dir, self, foe)
 			scene.add_child(m)
-		PowerUps.Kind.CHAOS:
-			if foe:
-				foe.apply_chaos(CHAOS_SECONDS)
 		PowerUps.Kind.GRENADE:
 			var to := aim - global_position
 			if to.length() > GRENADE_RANGE:
