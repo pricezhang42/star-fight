@@ -29,9 +29,11 @@ runs everything; the joining computer just shows the same picture (with black
 bars if the screens are a different shape) and sends its keys and mouse to the
 host. Both computers need the same version of the game, on the same network.
 The first time you host, macOS asks whether to allow incoming connections:
-allow it. Either player can press Enter to restart after the match ends. Esc
-goes back to the title screen (and leaves a LAN game; the other player is sent
-back to the title screen too).
+allow it. Either player can press Enter to restart after the match ends. **Esc** opens
+the pause menu (Resume / Exit to main menu); in a LAN game either player can
+pause or resume, and the game pauses for both. Exiting leaves the LAN game and
+the other player is sent back to the title screen. Nobody can steer or fire
+during the 3-2-1 GET READY countdown.
 
 **If the network won't let the two computers talk** (common on school and
 office Wi-Fi, which often blocks devices from reaching each other):

@@ -197,23 +197,21 @@ text = "SCROLL x1.0"
 label_settings = SubResource("ls")
 horizontal_alignment = 1
 
-[node name="Hint" type="Label" parent="."]
+[node name="Hint" type="VBoxContainer" parent="."]
 anchors_preset = 7
 anchor_left = 0.5
 anchor_top = 1.0
 anchor_right = 0.5
 anchor_bottom = 1.0
-offset_left = -640.0
-offset_top = -80.0
-offset_right = 640.0
-offset_bottom = -14.0
+offset_left = -700.0
+offset_top = -104.0
+offset_right = 700.0
+offset_bottom = -10.0
 grow_horizontal = 2
 grow_vertical = 0
-modulate = Color(1, 1, 1, 0.7)
-text = "A/D TURN   W THRUST   S BRAKE   SHIFT BOOST   SPACE DASH
-MOUSE AIM   L-CLICK FIRE   R-CLICK POWER-UP   TAB SWITCH"
-label_settings = SubResource("ls")
-horizontal_alignment = 1
+mouse_filter = 2
+modulate = Color(1, 1, 1, 0.85)
+alignment = 2
 
 [node name="Message" type="Label" parent="."]
 visible = false
@@ -226,3 +224,46 @@ text = "MESSAGE"
 label_settings = SubResource("ls")
 horizontal_alignment = 1
 vertical_alignment = 1
+
+[node name="PauseMenu" type="Control" parent="."]
+process_mode = 3
+visible = false
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+grow_horizontal = 2
+grow_vertical = 2
+
+[node name="Dim" type="ColorRect" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+color = Color(0, 0, 0, 0.6)
+
+[node name="Center" type="CenterContainer" parent="PauseMenu"]
+anchors_preset = 15
+anchor_right = 1.0
+anchor_bottom = 1.0
+
+[node name="Box" type="VBoxContainer" parent="PauseMenu/Center"]
+custom_minimum_size = Vector2(460, 0)
+theme_override_constants/separation = 18
+
+[node name="Title" type="Label" parent="PauseMenu/Center/Box"]
+text = "PAUSED"
+label_settings = SubResource("ls")
+horizontal_alignment = 1
+
+[node name="By" type="Label" parent="PauseMenu/Center/Box"]
+modulate = Color(1, 1, 1, 0.75)
+text = ""
+label_settings = SubResource("ls")
+horizontal_alignment = 1
+
+[node name="Resume" type="Button" parent="PauseMenu/Center/Box"]
+custom_minimum_size = Vector2(0, 56)
+text = "RESUME"
+
+[node name="Exit" type="Button" parent="PauseMenu/Center/Box"]
+custom_minimum_size = Vector2(0, 56)
+text = "EXIT TO MAIN MENU"

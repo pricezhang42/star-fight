@@ -12,7 +12,7 @@ enum Mode { LOCAL, HOST, CLIENT }
 const PORT := 7777
 ## Bump this whenever the network messages change. Both computers must match;
 ## if they don't, they're told to update instead of freezing.
-var NET_PROTOCOL := 6
+var NET_PROTOCOL := 7
 ## The world picture is sent this many times a second, split into small
 ## packets that each fit in one network packet (no fragmenting).
 const WORLD_RATE := 30.0
@@ -62,6 +62,10 @@ var _world_frame := 0
 ## Joiner: pieces of world frames being reassembled.
 var _frames := {}
 var _last_applied := -1
+## Pause: on the host (and in solo practice) the game tree is paused; in a LAN
+## game both computers show the pause menu.
+var paused := false
+var paused_by := ""
 
 
 func _ready() -> void:
@@ -138,9 +142,11 @@ func leave(to_menu := true, message := "") -> void:
 	remote_turn = 0.0
 	remote_buttons = 0
 	_remote_events.clear()
+	paused = false
+	paused_by = ""
+	get_tree().paused = false
 	if to_menu:
 		menu_message = message
-		get_tree().paused = false
 		get_tree().change_scene_to_file(MENU_SCENE)
 
 
@@ -333,6 +339,12 @@ func _process(delta: float) -> void:
 			var ip := _prober.get_packet_ip()
 			if data == DISCOVERY_TAG:
 				_add_host(ip)
+	# Host: the joiner asked to pause or resume.
+	if is_host():
+		if take_event("pause"):
+			set_paused(not paused, "RED")
+		if take_event("resume"):
+			set_paused(false, "")
 	# Host: stream the game to the other computer.
 	if is_host():
 		var scene := get_tree().current_scene
@@ -491,5 +503,57 @@ func _unhandled_input(event: InputEvent) -> void:
 	elif event is InputEventKey and event.pressed and not event.echo and event.keycode == KEY_ESCAPE:
 		var scene := get_tree().current_scene
 		if scene and scene.scene_file_path != MENU_SCENE:
-			leave(true)
+			toggle_pause()
 			get_viewport().set_input_as_handled()
+
+
+
+# ===========================================================================
+# Pause menu (Esc). Either player can pause; either can resume.
+# ===========================================================================
+
+func toggle_pause() -> void:
+	if mode == Mode.CLIENT:
+		send_event("pause", Vector2.ZERO)
+	else:
+		set_paused(not paused, "BLUE" if mode == Mode.HOST else "")
+
+
+## Host / solo: pause or resume the game and tell the other computer.
+func set_paused(on: bool, by: String) -> void:
+	paused = on
+	paused_by = by if on else ""
+	get_tree().paused = on
+	_show_pause_locally()
+	if is_host():
+		client_pause.rpc_id(_client_id(), on, paused_by)
+
+
+func _show_pause_locally() -> void:
+	var scene := get_tree().current_scene
+	if scene and scene.has_node("HUD"):
+		var hud := scene.get_node("HUD")
+		if not hud.resume_pressed.is_connected(_on_resume_pressed):
+			hud.resume_pressed.connect(_on_resume_pressed)
+			hud.exit_pressed.connect(_on_exit_pressed)
+		hud.show_pause(paused, paused_by)
+
+
+func _on_resume_pressed() -> void:
+	if mode == Mode.CLIENT:
+		send_event("resume", Vector2.ZERO)
+	else:
+		set_paused(false, "")
+
+
+func _on_exit_pressed() -> void:
+	paused = false
+	get_tree().paused = false
+	leave(true, "")
+
+
+@rpc("authority", "call_remote", "reliable", 2)
+func client_pause(on: bool, by: String) -> void:
+	paused = on
+	paused_by = by
+	_show_pause_locally()

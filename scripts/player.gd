@@ -31,6 +31,8 @@ signal loadout_changed(weapon: int, weapon_left: float, shield_left: float)
 @export var player_id := 1
 ## True when this ship is flown from the other computer (LAN host only).
 var remote := false
+## Set by the game during the GET READY countdown: the ship ignores input.
+var controls_locked := false
 @export var speed := 0.0 ## current speed (starts parked)
 @export var min_speed := 0.0
 @export var max_speed := 340.0
@@ -202,6 +204,16 @@ func _physics_process(delta: float) -> void:
 		use_now = Input.is_action_just_pressed("use_item")
 		next_now = Input.is_action_just_pressed("next_item")
 		aim = get_global_mouse_position()
+	if controls_locked:
+		# GET READY countdown: inputs are read (so presses don't pile up) but ignored.
+		turn = 0.0
+		go = false
+		stop_ = false
+		firing = false
+		dash_now = false
+		boost_held = false
+		use_now = false
+		next_now = false
 	if reversed:
 		turn = -turn # Chaos only swaps A/D; W/S work normally
 	if slick_time > 0.0:

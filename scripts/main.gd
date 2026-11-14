@@ -146,6 +146,10 @@ func _alive_players() -> Array:
 func _update_scroll(delta: float) -> void:
 	var half := _view_height() / 2.0
 	var flying := _alive_players()
+	# No one can fly during the GET READY countdown.
+	for p in players:
+		if is_instance_valid(p):
+			p.controls_locked = _countdown > 0.0
 	if _countdown > 0.0:
 		_countdown -= delta
 		hud.set_countdown(ceili(_countdown) if _countdown > 0.0 else 0)

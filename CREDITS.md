@@ -77,3 +77,14 @@ required by CC0 but is given here with thanks.
 
 "Blueish black hole" by reemax is licensed under CC-BY 3.0. This credit must be
 kept wherever the game is distributed.
+
+## Input Prompts
+
+- **Author:** Kenney Vleugels (www.kenney.nl)
+- **License:** CC0 1.0 Universal (public domain)
+- **Downloaded from:** https://opengameart.org/content/input-prompts
+  (file `kenney_input-prompts_1.zip`)
+- **Original license file:** `assets/kenney_input_prompts/License.txt`
+- **Used for:** the keyboard key and mouse images in the control help at the
+  start of a game (`keyboard_a/d/w/s/shift/space/tab/escape.png`,
+  `mouse_move/left/right.png`).

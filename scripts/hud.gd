@@ -32,7 +32,26 @@ var _danger := {1: 0.0, 2: 0.0}
 var _solo := false
 
 
+## Control help: rows of [key images..., "WHAT IT DOES"]. Key images are from
+## Kenney's Input Prompts pack (CC0).
+const KEYS := "res://assets/kenney_input_prompts/"
+const HELP_ROWS := [
+	[["keyboard_a", "keyboard_d"], "TURN", ["keyboard_w"], "THRUST", ["keyboard_s"], "BRAKE", ["keyboard_shift"], "BOOST", ["keyboard_space"], "DASH"],
+	[["mouse_move"], "AIM", ["mouse_left"], "FIRE", ["mouse_right"], "POWER-UP", ["keyboard_tab"], "SWITCH", ["keyboard_escape"], "PAUSE"],
+]
+
+signal resume_pressed
+signal exit_pressed
+
+
 func _ready() -> void:
+	_build_help()
+	$PauseMenu/Center/Box/Resume.pressed.connect(func(): resume_pressed.emit())
+	$PauseMenu/Center/Box/Exit.pressed.connect(func(): exit_pressed.emit())
+	var font: Font = scroll_label.label_settings.font
+	for b in [$PauseMenu/Center/Box/Resume, $PauseMenu/Center/Box/Exit]:
+		b.add_theme_font_override("font", font)
+		b.add_theme_font_size_override("font_size", 26)
 	# Fade the control help out after the first 15 seconds of a run.
 	var tw := $Hint.create_tween()
 	tw.tween_interval(15.0)
@@ -207,3 +226,45 @@ func apply_net_state(st: Dictionary) -> void:
 	message.text = st.msg
 	message.visible = st.msg_on
 	$Hint.modulate.a = st.hint
+
+
+
+func _build_help() -> void:
+	var ls := LabelSettings.new()
+	ls.font = scroll_label.label_settings.font
+	ls.font_size = 20
+	ls.outline_size = 4
+	ls.outline_color = Color.BLACK
+	for row in HELP_ROWS:
+		var line := HBoxContainer.new()
+		line.alignment = BoxContainer.ALIGNMENT_CENTER
+		line.add_theme_constant_override("separation", 6)
+		line.mouse_filter = Control.MOUSE_FILTER_IGNORE
+		for item in row:
+			if item is Array:
+				for key in item:
+					var icon := TextureRect.new()
+					icon.texture = load(KEYS + key + ".png")
+					icon.expand_mode = TextureRect.EXPAND_IGNORE_SIZE
+					icon.stretch_mode = TextureRect.STRETCH_KEEP_ASPECT_CENTERED
+					icon.custom_minimum_size = Vector2(42, 42)
+					line.add_child(icon)
+			else:
+				var label := Label.new()
+				label.text = item
+				label.label_settings = ls
+				label.custom_minimum_size = Vector2(0, 42)
+				label.vertical_alignment = VERTICAL_ALIGNMENT_CENTER
+				line.add_child(label)
+				var gap := Control.new()
+				gap.custom_minimum_size = Vector2(26, 0)
+				line.add_child(gap)
+		$Hint.add_child(line)
+
+
+## Pause menu. `by` names who paused ("" in solo practice).
+func show_pause(on: bool, by: String) -> void:
+	$PauseMenu.visible = on
+	# The big centre message (GET READY / game over) would show through the menu.
+	message.self_modulate.a = 0.0 if on else 1.0
+	$PauseMenu/Center/Box/By.text = ("PAUSED BY " + by) if by != "" else ""
