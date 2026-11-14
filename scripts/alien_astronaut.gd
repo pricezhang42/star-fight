@@ -131,11 +131,12 @@ func _update_crates(rect: Rect2, delta: float) -> void:
 		_item_timer = randf_range(crate_interval.x, crate_interval.y)
 		if _crates.size() < max_crates:
 			# Somewhere Darth has to travel to: at least 15% of the track away.
-			var t := randf()
+			# Not right at the top ends of the U, where the HUD text sits.
+			var t := randf_range(0.06, 0.94)
 			for attempt in 10:
 				if absf(t - track_pos) >= 0.15:
 					break
-				t = randf()
+				t = randf_range(0.06, 0.94)
 			# The crate's item is decided now and shown on it.
 			var item := randi() % Item.size()
 			var spr := Sprite2D.new()

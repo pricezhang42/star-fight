@@ -43,8 +43,29 @@ func set_lives(n: int) -> void:
 		lives_box.add_child(icon)
 
 
+var _scroll_mult := 1.0
+
+
 func set_score(score: int, best: int) -> void:
-	distance_label.text = "SCORE %d\nBEST %d" % [score, best]
+	distance_label.text = "SCORE %d\nBEST %d\nSCROLL x%.1f" % [score, best, _scroll_mult]
+
+
+func set_scroll(mult: float) -> void:
+	_scroll_mult = mult
+
+
+## Big "GET READY" countdown in the middle; 0 hides it.
+func set_countdown(n: int) -> void:
+	if n > 0:
+		message.text = "GET READY\n\n%d" % n
+		message.visible = true
+	elif message.text.begins_with("GET READY"):
+		message.visible = false
+
+
+## Red glow at the bottom of the screen, 0..1, as Luke nears the bottom edge.
+func set_danger(amount: float) -> void:
+	$Danger.modulate.a = amount
 
 
 func show_message(text: String) -> void:

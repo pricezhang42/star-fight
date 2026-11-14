@@ -2,6 +2,11 @@
 
 This is the **`vertical` branch**: the same game, but it scrolls upwards.
 Luke starts at the bottom and climbs; the level keeps generating above him.
+After a 3 second GET READY countdown the screen scrolls up on its own, starting
+at 60 px/s and speeding up by 8 px/s per 100 points (up to 260 px/s; shown as
+SCROLL xN under the score). Falling below the bottom edge costs a life and
+bumps Luke back onto the screen (a red glow warns when he gets close); flying
+into the top third makes the screen speed up to keep him in view.
 The play area is 2600 px wide with rock walls on the left and right, and the
 camera fits the full width on screen. Your score is how high you climb
 (furthest point, 1 point per 10 pixels) plus 100 points every time Luke stuns Darth. The best score is saved separately from the side-scrolling version

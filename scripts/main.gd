@@ -13,8 +13,14 @@ extends Node2D
 @export var score_per_pixel := 0.1
 ## Points Luke earns for stunning Darth (3 laser hits).
 @export var darth_hit_points := 100
-## How far behind their furthest point the player may fly back.
-@export var backtrack_limit := 1100.0
+## Auto-scroll: the screen climbs on its own, faster as Luke's score rises.
+@export var scroll_start_speed := 60.0
+@export var scroll_per_point := 0.08 ## extra px/s per score point (8 per 100)
+@export var scroll_max_speed := 260.0
+@export var countdown_seconds := 3.0
+## If Luke flies into the top part of the screen (this fraction of its
+## height), the screen speeds up to keep him in view.
+@export var catch_up_fraction := 0.33
 ## Seconds between random comets at the start (easy) and at full difficulty.
 @export var comet_interval_easy := Vector2(4.0, 6.5)
 @export var comet_interval_hard := Vector2(1.0, 2.2)
@@ -34,6 +40,9 @@ var _over := false
 var _comet_timer := 3.0
 var _start_x := 0.0
 var _furthest_x := 0.0
+var _scroll_y := 0.0 ## world y of the screen centre
+var _scroll_speed := 0.0
+var _countdown := 0.0
 var score := 0
 ## Points from shooting Darth (added to the distance score).
 var bonus := 0
@@ -48,10 +57,13 @@ var best := 0
 
 
 func _ready() -> void:
+	# The camera no longer follows Luke: main moves it (auto-scroll).
+	camera.top_level = true
+	camera.position_smoothing_enabled = false
 	camera.limit_left = 0
 	camera.limit_right = int(world_size.x)
 	camera.limit_top = -100000000
-	camera.limit_bottom = 0
+	camera.limit_bottom = 100000000
 	player.lives_changed.connect(hud.set_lives)
 	player.died.connect(_on_player_died)
 	hud.set_lives(player.lives)
@@ -71,6 +83,15 @@ func _ready() -> void:
 	_size_window()
 	get_viewport().size_changed.connect(_fit_width)
 	_fit_width()
+	# Start with the bottom of the screen on the bottom wall and Luke a bit
+	# above it, then count down before scrolling.
+	_scroll_y = -_view_height() / 2.0
+	camera.global_position = Vector2(world_size.x / 2.0, _scroll_y)
+	camera.reset_smoothing()
+	player.global_position.y = -_view_height() * 0.28
+	_start_x = -player.global_position.y
+	_furthest_x = _start_x
+	_countdown = countdown_seconds
 
 
 ## Make the window nearly fill the monitor (once per launch).
@@ -85,6 +106,44 @@ func _size_window() -> void:
 	var size := Vector2i(Vector2(area.size) * window_fraction)
 	DisplayServer.window_set_size(size)
 	DisplayServer.window_set_position(area.position + (area.size - size) / 2)
+
+
+func _view_height() -> float:
+	return get_viewport().get_visible_rect().size.y / camera.zoom.y
+
+
+## Auto-scroll, top catch-up, and keeping Luke on screen.
+func _update_scroll(delta: float) -> void:
+	var half := _view_height() / 2.0
+	if _countdown > 0.0:
+		_countdown -= delta
+		hud.set_countdown(ceili(_countdown) if _countdown > 0.0 else 0)
+	elif not _over:
+		_scroll_speed = minf(scroll_start_speed + score * scroll_per_point, scroll_max_speed)
+		_scroll_y -= _scroll_speed * delta
+		# Top catch-up: Luke can't fly off the top; the screen follows him.
+		var catch_line := _scroll_y - half + _view_height() * catch_up_fraction
+		if player.global_position.y < catch_line:
+			_scroll_y -= catch_line - player.global_position.y
+	hud.set_scroll(maxf(_scroll_speed, scroll_start_speed) / scroll_start_speed)
+	camera.global_position = Vector2(world_size.x / 2.0, _scroll_y)
+
+	if _over:
+		hud.set_danger(0.0)
+		return
+	# Bottom edge: falling below it costs a life and bumps Luke back up.
+	var margin: float = player.BASE_RADIUS * player.size_mult + 6.0
+	var bottom := _scroll_y + half - margin
+	var gap: float = bottom - player.global_position.y
+	hud.set_danger(clampf(1.0 - gap / (_view_height() * 0.25), 0.0, 1.0))
+	if player.global_position.y > bottom:
+		player.global_position.y = bottom
+		var shielded: bool = player._invuln > 0.0 or player._dash_iframe > 0.0 or player._phasing
+		if not shielded:
+			player.take_hit(Vector2(player.global_position.x, bottom + 200.0))
+			player.global_position.y = bottom - 60.0
+		# Either way, the edge carries Luke up with the screen.
+		player.drift.y = minf(player.drift.y, -(_scroll_speed + 150.0))
 
 
 ## Zoom the camera so the whole level width fills the screen horizontally.
@@ -114,16 +173,12 @@ func _process(delta: float) -> void:
 	score = int((_furthest_x - _start_x) * score_per_pixel) + bonus
 	hud.set_score(score, maxi(score, best))
 
-	# Keep the level built ahead, forget what is far behind, and stop the
-	# player flying back into the forgotten part.
-	var back := maxf(0.0, _furthest_x - backtrack_limit)
-	camera.limit_bottom = int(-maxf(0.0, back - 300.0))
-	generator.update(_furthest_x + 3000.0, back - 2500.0)
-	if not _over and x < back:
-		player.position.y = -back
-		player.heading = -player.heading # bounce back upwards
-		player._move_dir = player.heading
-		player.drift.y = -absf(player.drift.y)
+	_update_scroll(delta)
+
+	# Keep the level built above the screen and forget what is far below it.
+	var screen_top := -(_scroll_y - _view_height() / 2.0)
+	var screen_bottom := -(_scroll_y + _view_height() / 2.0)
+	generator.update(screen_top + 3000.0, screen_bottom - 2500.0)
 
 	if _over and Input.is_action_just_pressed("restart"):
 		get_tree().reload_current_scene()
