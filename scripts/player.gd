@@ -103,10 +103,7 @@ func _physics_process(delta: float) -> void:
 	var go := Input.is_action_pressed("thrust")
 	var stop_ := Input.is_action_pressed("brake")
 	if reversed:
-		turn = -turn
-		var tmp := go
-		go = stop_
-		stop_ = tmp
+		turn = -turn # Chaos only swaps A/D; W/S work normally
 	if slick_time > 0.0:
 		# Oil on the thrusters: turning speeds up and slows down gradually,
 		# and the travel direction lags behind where the nose points.

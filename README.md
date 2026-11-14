@@ -50,7 +50,7 @@ Darth's line at the top of the screen; the selected one is highlighted).
 
 | Item | Effect |
 | --- | --- |
-| Chaos | Luke's controls are swapped for 2 s (A/D and W/S). Luke's ship turns purple and "CONTROLS REVERSED!" shows. |
+| Chaos | Luke's turning is swapped for 2 s (A and D trade places; W/S are unaffected). Luke's ship turns purple and "CONTROLS REVERSED!" shows. |
 | Flash | A dark cloud covers the spot Darth clicked for 4 s, after a bright flash. |
 | Hunter | A purple enemy ship spawns next to Darth, always hunts Luke (slightly faster than Luke's top speed), shoots, and dies in 3 hits. It leaves after 20 s. |
 | Laser | A flashing red warning line points where Darth clicked for 1 s, then a beam fires along it and costs Luke a life if it touches him. It passes through everything and destroys every breakable rock on its line, so it can also carve tunnels. Dodge sideways during the warning. |
