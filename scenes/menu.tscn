@@ -42,7 +42,7 @@ anchor_bottom = 1.0
 [node name="Box" type="VBoxContainer" parent="Center"]
 custom_minimum_size = Vector2(640, 0)
 layout_mode = 2
-theme_override_constants/separation = 18
+theme_override_constants/separation = 12
 
 [node name="Title" type="Label" parent="Center/Box"]
 layout_mode = 2
@@ -53,6 +53,41 @@ horizontal_alignment = 1
 [node name="Local" type="Button" parent="Center/Box"]
 layout_mode = 2
 text = "SOLO PRACTICE"
+
+[node name="OnlineTitle" type="Label" parent="Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PLAY ONLINE (ANYWHERE, ALSO IN A WEB BROWSER):"
+horizontal_alignment = 1
+
+[node name="OnlineHost" type="Button" parent="Center/Box"]
+layout_mode = 2
+text = "HOST ONLINE GAME (BLUE SHIP)"
+
+[node name="CodeRow" type="HBoxContainer" parent="Center/Box"]
+layout_mode = 2
+
+[node name="Code" type="LineEdit" parent="Center/Box/CodeRow"]
+layout_mode = 2
+size_flags_horizontal = 3
+placeholder_text = "GAME CODE, E.G. M4QT"
+max_length = 8
+
+[node name="JoinOnline" type="Button" parent="Center/Box/CodeRow"]
+layout_mode = 2
+text = "JOIN (RED SHIP)"
+
+[node name="Copy" type="Button" parent="Center/Box"]
+visible = false
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "COPY CODE"
+
+[node name="LanTitle" type="Label" parent="Center/Box"]
+layout_mode = 2
+theme_override_font_sizes/font_size = 18
+text = "PLAY ON THE SAME NETWORK (LAN):"
+horizontal_alignment = 1
 
 [node name="Host" type="Button" parent="Center/Box"]
 layout_mode = 2

@@ -1,0 +1,16 @@
+{
+  "name": "star-fights-relay",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Pairs two Star Fights players by room code and forwards their game messages (online and browser play).",
+  "main": "relay.js",
+  "scripts": {
+    "start": "node relay.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "ws": "8.23.0"
+  }
+}

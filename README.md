@@ -18,6 +18,11 @@ camera fits the full width on screen. The game starts in fullscreen.
 The game opens on a title screen:
 
 - **Solo practice:** fly the blue ship alone through the level.
+- **Host online game (blue ship):** works from anywhere, also in a web
+  browser. The screen shows a 4-letter game code (in a browser, COPY INVITE
+  LINK copies a link that joins straight away). The game starts as soon as
+  the other player joins.
+- **Join online (red ship):** type the host's game code and press Join.
 - **Host LAN game (blue ship):** this computer runs the game. The screen
   shows its network address(es). The game starts as soon as the other player
   joins.
@@ -50,7 +55,29 @@ office Wi-Fi, which often blocks devices from reaching each other):
    school allows installing it.)
 
 For testing on one machine you can also start the game from the command line
-with `-- --host` or `-- --join=127.0.0.1`.
+with `-- --host` or `-- --join=127.0.0.1` (LAN), or `-- --host-online` and
+`-- --join-online=<code>` (online).
+
+## Playing in a web browser
+
+The web version has solo practice and online play (browsers can't do LAN
+play). Online games go through a small relay server that pairs the two
+players by their game code. Setting it up once is described in
+[server/README.md](server/README.md): put the relay online (Render's free
+plan works), then put its `wss://` address in `project.godot` under
+`[star_fights]`, `online/relay_url`. Desktop copies of the game use the same
+relay, so a desktop player and a browser player can play each other.
+
+To publish the web version on GitHub Pages: in the repository's Settings >
+Pages, set Source to "GitHub Actions". After that, every push to `main`
+builds the game (`.github/workflows/web.yml`) and puts it at
+`https://<your-github-name>.github.io/star-fight/`. To build it yourself,
+use Project > Export with the "Web" preset (it writes `build/web/`). The
+files also work on itch.io: zip the contents of `build/web/` and upload it
+as an HTML game.
+
+In the browser the game starts in a window: press F11 (or the browser's own
+fullscreen) for fullscreen.
 
 To make a double-clickable Mac app, install Godot's export templates
 (Editor > Manage Export Templates > Download and Install), then use
