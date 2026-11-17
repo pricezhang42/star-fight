@@ -93,4 +93,4 @@ Net="*res://scripts/net.gd"
 
 [star_fights]
 
-online/relay_url="ws://127.0.0.1:8080"
+online/relay_url="wss://star-fights-relay.onrender.com"
