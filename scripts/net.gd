@@ -1,11 +1,18 @@
 extends Node
-## LAN play (autoload "Net"). One computer hosts and runs the whole game
-## (and flies the blue ship); the other joins and flies the red ship. The
-## joining computer runs no game logic: it sends its keys and mouse to the
+## LAN and online play (autoload "Net"). One player hosts and runs the whole
+## game (and flies the blue ship); the other joins and flies the red ship. The
+## joining player runs no game logic: it sends its keys and mouse to the
 ## host, and the host streams back everything that is drawn (see NetMirror),
 ## the HUD and sounds.
 ##
-## Command line shortcuts (after "--"):  --host   or   --join=<ip>
+## Two ways to connect, both carrying exactly the same messages:
+## - LAN: ENet straight between the two computers (desktop only).
+## - Online: a WebSocket through the relay server (server/relay.js), which
+##   pairs the players by a room code (see RelayPeer). This also works in a
+##   web browser, where ENet and LAN broadcast aren't available.
+##
+## Command line shortcuts (after "--"):  --host   --join=<ip>
+##   --host-online   --join-online=<code>   --relay=<ws(s)://server>
 
 enum Mode { LOCAL, HOST, CLIENT }
 
@@ -21,6 +28,11 @@ const SLICE_BYTES := 1000
 ## e.g. to test while another copy of the game is open on this machine).
 var DISCOVERY_PORT := 7778
 const DISCOVERY_TAG := "STARFIGHTS"
+## Where the online relay server is: the project setting below (set it once
+## the server is deployed, see server/README.md). `-- --relay=<url>` or, in
+## the browser, `?relay=<url>` in the page address overrides it for testing.
+const RELAY_SETTING := "star_fights/online/relay_url"
+var relay_url := "ws://127.0.0.1:8080"
 ## A joiner asking "is anyone hosting?"; a host answers with DISCOVERY_TAG.
 const PROBE_TAG := "STARFIGHTS?"
 const MENU_SCENE := "res://scenes/menu.tscn"
@@ -29,8 +41,14 @@ const CLIENT_SCENE := "res://scenes/client_view.tscn"
 
 signal status_changed(text: String)
 signal hosts_found_changed(hosts: Array)
+## Online host: the room code is ready to share.
+signal room_ready(code: String)
 
 var mode := Mode.LOCAL
+## True while connected (or connecting) through the online relay.
+var online := false
+## Online host: the room code the other player types to join.
+var room_code := ""
 ## Message shown on the menu when we get sent back there (e.g. disconnects).
 var menu_message := ""
 
@@ -77,8 +95,22 @@ func _ready() -> void:
 	multiplayer.server_disconnected.connect(_on_server_disconnected)
 	(multiplayer as SceneMultiplayer).peer_packet.connect(_on_peer_packet)
 	# Command line shortcuts, handy for testing two windows on one machine.
+	if ProjectSettings.has_setting(RELAY_SETTING):
+		relay_url = str(ProjectSettings.get_setting(RELAY_SETTING))
+	var page_args := _web_query_args()
+	if page_args.has("relay"):
+		relay_url = page_args.relay
 	for arg in OS.get_cmdline_user_args():
-		if arg == "--host":
+		if arg.begins_with("--relay="):
+			relay_url = arg.trim_prefix("--relay=")
+	if page_args.has("join"):
+		call_deferred("join_online", page_args.join)
+	for arg in OS.get_cmdline_user_args():
+		if arg == "--host-online":
+			call_deferred("host_online")
+		elif arg.begins_with("--join-online="):
+			call_deferred("join_online", arg.trim_prefix("--join-online="))
+		elif arg == "--host":
 			call_deferred("host")
 		elif arg.begins_with("--net-protocol="): # testing the version check
 			NET_PROTOCOL = int(arg.trim_prefix("--net-protocol="))
@@ -94,6 +126,40 @@ func is_host() -> bool:
 
 func is_client() -> bool:
 	return mode == Mode.CLIENT
+
+
+## Running in a web browser: no LAN play there, only online.
+func is_web() -> bool:
+	return OS.has_feature("web")
+
+
+## In the browser, the ?key=value pairs of the page address.
+func _web_query_args() -> Dictionary:
+	var out := {}
+	if not is_web():
+		return out
+	var query = JavaScriptBridge.eval("window.location.search", true)
+	if typeof(query) != TYPE_STRING:
+		return out
+	for pair in str(query).trim_prefix("?").split("&", false):
+		var kv: PackedStringArray = pair.split("=", true, 1)
+		out[kv[0].uri_decode()] = kv[1].uri_decode() if kv.size() > 1 else ""
+	return out
+
+
+## The page address to send a friend so they join this room straight away
+## (browser only; empty on desktop).
+func invite_link() -> String:
+	if not is_web() or room_code == "":
+		return ""
+	var base = JavaScriptBridge.eval("window.location.origin + window.location.pathname", true)
+	if typeof(base) != TYPE_STRING:
+		return ""
+	var link := "%s?join=%s" % [base, room_code]
+	var page_args := _web_query_args()
+	if page_args.has("relay"):
+		link += "&relay=" + str(page_args.relay).uri_encode()
+	return link
 
 
 # ===========================================================================
@@ -131,12 +197,61 @@ func join(address: String) -> void:
 	_set_status("Connecting to %s..." % address)
 
 
+## Host an online game: the relay hands out a room code to share.
+func host_online() -> void:
+	leave(false)
+	start_listening(false)
+	var peer := RelayPeer.new()
+	peer.room_ready.connect(_on_room_ready)
+	if peer.create_host(relay_url) != OK:
+		_set_status(peer.error_text)
+		return
+	multiplayer.multiplayer_peer = peer
+	mode = Mode.HOST
+	online = true
+	_set_status("Connecting to the game server...\n(the first game of the day can take up to a minute)")
+
+
+## Join an online game by its room code.
+func join_online(code: String) -> void:
+	code = code.strip_edges().to_upper()
+	if code == "":
+		return
+	leave(false)
+	start_listening(false)
+	var peer := RelayPeer.new()
+	if peer.create_join(relay_url, code) != OK:
+		_set_status(peer.error_text)
+		return
+	multiplayer.multiplayer_peer = peer
+	mode = Mode.CLIENT
+	online = true
+	room_code = code
+	_set_status("Joining game %s...\n(the first game of the day can take up to a minute)" % code)
+
+
+func _on_room_ready(code: String) -> void:
+	room_code = code
+	_set_status("Hosting online. Your game code is  %s\nThe other player picks JOIN and types this code.\nThe game starts as soon as they join." % code)
+	room_ready.emit(code)
+
+
+## Why the online connection ended, if it did.
+func _relay_error(fallback: String) -> String:
+	var peer := multiplayer.multiplayer_peer
+	if peer is RelayPeer and peer.error_text != "":
+		return peer.error_text
+	return fallback
+
+
 ## Close any connection. With `to_menu`, also go back to the menu.
 func leave(to_menu := true, message := "") -> void:
 	if multiplayer.has_multiplayer_peer() and not (multiplayer.multiplayer_peer is OfflineMultiplayerPeer):
 		multiplayer.multiplayer_peer.close()
 	multiplayer.multiplayer_peer = OfflineMultiplayerPeer.new()
 	mode = Mode.LOCAL
+	online = false
+	room_code = ""
 	_broadcaster = null
 	_mirror_sender = null
 	remote_turn = 0.0
@@ -159,7 +274,7 @@ func _on_peer_connected(id: int) -> void:
 
 func _on_peer_disconnected(_id: int) -> void:
 	if mode == Mode.HOST:
-		leave(true, "The other player disconnected.")
+		leave(true, _relay_error("The other player disconnected."))
 
 
 func _on_connected() -> void:
@@ -171,11 +286,11 @@ func _on_connected() -> void:
 
 
 func _on_connection_failed() -> void:
-	leave(true, "Could not reach the host.")
+	leave(true, _relay_error("Could not reach the host."))
 
 
 func _on_server_disconnected() -> void:
-	leave(true, "The host left the game.")
+	leave(true, _relay_error("The host left the game."))
 
 
 ## Version check, sent as raw bytes so it works even if the two computers'
@@ -187,7 +302,7 @@ func _send_version(to_peer: int) -> void:
 func _on_peer_packet(_id: int, packet: PackedByteArray) -> void:
 	var text := packet.get_string_from_utf8()
 	if text.begins_with("SFV:") and int(text.trim_prefix("SFV:")) != NET_PROTOCOL:
-		call_deferred("leave", true, "The other computer is running a different version of the game.\nUpdate both to the same version (pull the latest two-ships) and try again.")
+		call_deferred("leave", true, "The other computer is running a different version of the game.\nUpdate both to the same version (reload the web page, or get the latest game) and try again.")
 
 
 func _set_status(text: String) -> void:
@@ -199,6 +314,8 @@ func _set_status(text: String) -> void:
 ## Tailscale / ZeroTier (100.64.0.0/10).
 func lan_addresses() -> Array:
 	var out := []
+	if is_web():
+		return out
 	for a in IP.get_local_addresses():
 		if not a.contains(".") or a.begins_with("127."):
 			continue
@@ -223,6 +340,8 @@ func lan_addresses() -> Array:
 ##    own /24 block, and collect the hosts that answer. Answers to our own
 ##    probes also get through firewalls that drop unsolicited broadcasts.
 func start_listening(on: bool) -> void:
+	if on and is_web():
+		return # browsers can't use LAN broadcast
 	if not on:
 		if _listener:
 			_listener.close()
@@ -294,6 +413,13 @@ func _add_host(ip: String) -> void:
 
 
 func _process(delta: float) -> void:
+	# Online host still waiting for a player: the server connection dropped
+	# (no other player to report it, so nothing else notices).
+	if mode == Mode.HOST and online and multiplayer.multiplayer_peer is RelayPeer \
+			and multiplayer.multiplayer_peer.get_connection_status() == MultiplayerPeer.CONNECTION_DISCONNECTED \
+			and multiplayer.get_peers().is_empty():
+		leave(true, _relay_error("Lost the connection to the game server."))
+		return
 	# Host: shout "I'm here" on the LAN once a second while waiting.
 	if _broadcaster:
 		_broadcast_timer -= delta

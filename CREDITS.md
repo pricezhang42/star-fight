@@ -88,3 +88,8 @@ kept wherever the game is distributed.
 - **Used for:** the keyboard key and mouse images in the control help at the
   start of a game (`keyboard_a/d/w/s/shift/space/tab/escape.png`,
   `mouse_move/left/right.png`).
+
+## Software used by the online relay server
+
+- **ws** (WebSocket library for Node.js), used only by `server/relay.js`, not
+  shipped in the game. MIT license - https://github.com/websockets/ws
