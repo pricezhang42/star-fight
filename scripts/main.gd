@@ -101,7 +101,7 @@ func _ready() -> void:
 
 ## Make the window nearly fill the monitor (once per launch).
 func _size_window() -> void:
-	if _window_sized or DisplayServer.get_name() == "headless":
+	if _window_sized or DisplayServer.get_name() == "headless" or OS.has_feature("web"):
 		return
 	_window_sized = true
 	if DisplayServer.window_get_mode() != DisplayServer.WINDOW_MODE_WINDOWED:

@@ -22,6 +22,7 @@ window/size/viewport_height=720
 window/size/window_width_override=1600
 window/size/window_height_override=900
 window/size/mode=3
+window/size/mode.web=0
 
 window/stretch/mode="canvas_items"
 window/stretch/aspect="expand"
@@ -89,3 +90,7 @@ restart={
 [autoload]
 
 Net="*res://scripts/net.gd"
+
+[star_fights]
+
+online/relay_url="ws://127.0.0.1:8080"

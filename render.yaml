@@ -1,0 +1,11 @@
+# Render Blueprint for the Star Fights online relay (see server/README.md).
+# On render.com: New > Blueprint, pick this repository, Apply.
+services:
+  - type: web
+    name: star-fights-relay
+    runtime: node
+    plan: free
+    rootDir: server
+    buildCommand: npm ci
+    startCommand: npm start
+    healthCheckPath: /
