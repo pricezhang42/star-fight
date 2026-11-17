@@ -7,3 +7,6 @@
 
 # Exported game builds
 build/
+
+# Online relay server
+server/node_modules/
